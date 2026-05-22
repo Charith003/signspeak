@@ -175,8 +175,10 @@ export function useHandTracking() {
 
         const hands = new HandsClass({
           locateFile: (file) => {
-            // Force non-SIMD wasm — avoids "Aborted" crash on CPUs without SIMD
-            if (file.includes('simd')) return `/mediapipe/hands/hands_solution_wasm_bin.wasm`
+            // Keep MediaPipe asset resolution 1:1 so each requested JS/DATA/WASM file
+            // resolves to the matching asset type. Rewriting every "simd" request to
+            // a .wasm path can make the loader execute the wrong file type and crash
+            // with runtime errors like "... is not a function".
             return `/mediapipe/hands/${file}`
           },
         })
