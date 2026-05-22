@@ -140,11 +140,14 @@ export function useHandTracking() {
   useEffect(() => {
     let mounted = true
 
-    const createHands = (HandsClass) => new HandsClass({
+    const createHands = (HandsClass, mode = 'non-simd') => new HandsClass({
       locateFile: (file) => {
-        // Hard-force non-SIMD assets to avoid recurring SIMD abort crashes.
-        // Keep extension/type aligned (js/data/wasm), only swap basename.
-        const resolved = file.replace('hands_solution_simd_wasm_bin', 'hands_solution_wasm_bin')
+        // Prefer local assets and explicitly support 2 modes:
+        // - non-simd: force non-SIMD binary family
+        // - default : pass through original filenames
+        const resolved = mode === 'non-simd'
+          ? file.replace('hands_solution_simd_wasm_bin', 'hands_solution_wasm_bin')
+          : file
         return `/mediapipe/hands/${resolved}`
       },
     })
@@ -182,7 +185,7 @@ export function useHandTracking() {
         // ── Step 3: create & configure Hands instance ─────────────────────────
         setStatusMsg('Initialising hand tracking…')
 
-        let hands = createHands(HandsClass)
+        let hands = createHands(HandsClass, 'non-simd')
         const applyOptions = (target) => target.setOptions({
           maxNumHands:             1,
           modelComplexity:         0,
@@ -198,22 +201,17 @@ export function useHandTracking() {
         setStatusMsg('Warming up model…')
         try {
           await hands.send({ image: video })
-        } catch (err) {
-          if (!isAbortError(err) || !canUseSimd) throw err
-          // Retry once in explicit non-SIMD mode.
-          setStatusMsg('Retrying with non-SIMD fallback…')
+        } catch (warmErr) {
+          const msg = String(warmErr?.message || '').toLowerCase()
+          // Some environments fail only with forced mapping; retry once using
+          // default MediaPipe file resolution names.
+          if (!msg.includes('abort')) throw warmErr
           hands.close?.()
-          hands = createHands(HandsClass, true)
+          hands = createHands(HandsClass, 'default')
           applyOptions(hands)
           hands.onResults(onResults)
           await hands.send({ image: video })
         }
-
-        handsRef.current = hands
-
-        handsRef.current = hands
-
-        handsRef.current = hands
 
         handsRef.current = hands
 
