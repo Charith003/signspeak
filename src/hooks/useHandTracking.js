@@ -196,7 +196,20 @@ export function useHandTracking() {
 
         // ── Step 4: send first frame to warm up WASM ──────────────────────────
         setStatusMsg('Warming up model…')
-        await hands.send({ image: video })
+        try {
+          await hands.send({ image: video })
+        } catch (err) {
+          if (!isAbortError(err) || !canUseSimd) throw err
+          // Retry once in explicit non-SIMD mode.
+          setStatusMsg('Retrying with non-SIMD fallback…')
+          hands.close?.()
+          hands = createHands(HandsClass, true)
+          applyOptions(hands)
+          hands.onResults(onResults)
+          await hands.send({ image: video })
+        }
+
+        handsRef.current = hands
 
         handsRef.current = hands
 
