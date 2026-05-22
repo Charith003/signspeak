@@ -141,6 +141,19 @@ export function useHandTracking() {
     let mounted = true
 
     const isAbortError = (err) => String(err?.message || '').toLowerCase().includes('abort')
+    const supportsSimd = () => {
+      // Fast SIMD feature detection: if unsupported, skip SIMD startup entirely.
+      // Byte sequence adapted from common Wasm SIMD validation snippet.
+      try {
+        if (typeof WebAssembly === 'undefined' || typeof WebAssembly.validate !== 'function') return false
+        const simdModule = new Uint8Array([
+          0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,11,
+        ])
+        return WebAssembly.validate(simdModule)
+      } catch {
+        return false
+      }
+    }
 
     const createHands = (HandsClass, forceNonSimd = false) => new HandsClass({
       locateFile: (file) => {
@@ -186,7 +199,8 @@ export function useHandTracking() {
         // ── Step 3: create & configure Hands instance ─────────────────────────
         setStatusMsg('Initialising hand tracking…')
 
-        let hands = createHands(HandsClass, false)
+        const canUseSimd = supportsSimd()
+        let hands = createHands(HandsClass, !canUseSimd)
         const applyOptions = (target) => target.setOptions({
           maxNumHands:             1,
           modelComplexity:         0,
@@ -203,7 +217,7 @@ export function useHandTracking() {
         try {
           await hands.send({ image: video })
         } catch (err) {
-          if (!isAbortError(err)) throw err
+          if (!isAbortError(err) || !canUseSimd) throw err
           // Retry once in explicit non-SIMD mode.
           setStatusMsg('Retrying with non-SIMD fallback…')
           hands.close?.()
