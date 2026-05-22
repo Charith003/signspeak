@@ -182,7 +182,7 @@ export function useHandTracking() {
         // ── Step 3: create & configure Hands instance ─────────────────────────
         setStatusMsg('Initialising hand tracking…')
 
-        const hands = createHands(HandsClass)
+        let hands = createHands(HandsClass)
         const applyOptions = (target) => target.setOptions({
           maxNumHands:             1,
           modelComplexity:         0,
@@ -215,6 +215,8 @@ export function useHandTracking() {
 
         handsRef.current = hands
 
+        handsRef.current = hands
+
         if (!mounted) return
 
         setStatus('ready')
@@ -235,12 +237,9 @@ export function useHandTracking() {
         console.error('Init error:', err)
         const msg = String(err?.message || '')
         if (msg.toLowerCase().includes('abort')) {
-          // Graceful degradation: keep camera UI available even if WASM runtime
-          // cannot start on this device/browser.
-          setStatus('ready')
-          setStatusMsg('Hand tracking unavailable on this browser/device.')
-          setHandsCount(0)
-          setCurrentSign(null)
+          // Don't pretend tracking is "ready" when runtime failed; surface error.
+          setStatus('error')
+          setStatusMsg('WASM runtime failed to start on this device. Please refresh and try again.')
         } else {
           setStatus('error')
           setStatusMsg(msg || 'Something went wrong. Refresh and try again.')
