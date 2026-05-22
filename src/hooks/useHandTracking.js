@@ -140,6 +140,15 @@ export function useHandTracking() {
   useEffect(() => {
     let mounted = true
 
+    const createHands = (HandsClass) => new HandsClass({
+      locateFile: (file) => {
+        // Hard-force non-SIMD assets to avoid recurring SIMD abort crashes.
+        // Keep extension/type aligned (js/data/wasm), only swap basename.
+        const resolved = file.replace('hands_solution_simd_wasm_bin', 'hands_solution_wasm_bin')
+        return `/mediapipe/hands/${resolved}`
+      },
+    })
+
     async function init() {
       try {
         // ── Step 1: camera ───────────────────────────────────────────────────
@@ -173,28 +182,23 @@ export function useHandTracking() {
         // ── Step 3: create & configure Hands instance ─────────────────────────
         setStatusMsg('Initialising hand tracking…')
 
-        const hands = new HandsClass({
-          locateFile: (file) => {
-            // Force non-SIMD wasm — avoids "Aborted" crash on CPUs without SIMD
-            if (file.includes('simd')) return `/mediapipe/hands/hands_solution_wasm_bin.wasm`
-            return `/mediapipe/hands/${file}`
-          },
-        })
-
-        hands.setOptions({
+        let hands = createHands(HandsClass)
+        const applyOptions = (target) => target.setOptions({
           maxNumHands:             1,
           modelComplexity:         0,
           minDetectionConfidence:  0.7,
           minTrackingConfidence:   0.5,
           useCpuInference:         true,
         })
+        applyOptions(hands)
 
         hands.onResults(onResults)
-        handsRef.current = hands
 
         // ── Step 4: send first frame to warm up WASM ──────────────────────────
         setStatusMsg('Warming up model…')
         await hands.send({ image: video })
+
+        handsRef.current = hands
 
         if (!mounted) return
 
@@ -214,8 +218,15 @@ export function useHandTracking() {
       } catch (err) {
         if (!mounted) return
         console.error('Init error:', err)
-        setStatus('error')
-        setStatusMsg(err.message || 'Something went wrong. Refresh and try again.')
+        const msg = String(err?.message || '')
+        if (msg.toLowerCase().includes('abort')) {
+          // Don't pretend tracking is "ready" when runtime failed; surface error.
+          setStatus('error')
+          setStatusMsg('WASM runtime failed to start on this device. Please refresh and try again.')
+        } else {
+          setStatus('error')
+          setStatusMsg(msg || 'Something went wrong. Refresh and try again.')
+        }
       }
     }
 
