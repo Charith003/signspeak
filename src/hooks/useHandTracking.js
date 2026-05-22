@@ -140,6 +140,18 @@ export function useHandTracking() {
   useEffect(() => {
     let mounted = true
 
+    const createHands = (HandsClass, mode = 'non-simd') => new HandsClass({
+      locateFile: (file) => {
+        // Prefer local assets and explicitly support 2 modes:
+        // - non-simd: force non-SIMD binary family
+        // - default : pass through original filenames
+        const resolved = mode === 'non-simd'
+          ? file.replace('hands_solution_simd_wasm_bin', 'hands_solution_wasm_bin')
+          : file
+        return `/mediapipe/hands/${resolved}`
+      },
+    })
+
     async function init() {
       try {
         // ── Step 1: camera ───────────────────────────────────────────────────
@@ -173,28 +185,35 @@ export function useHandTracking() {
         // ── Step 3: create & configure Hands instance ─────────────────────────
         setStatusMsg('Initialising hand tracking…')
 
-        const hands = new HandsClass({
-          locateFile: (file) => {
-            // Force non-SIMD wasm — avoids "Aborted" crash on CPUs without SIMD
-            if (file.includes('simd')) return `/mediapipe/hands/hands_solution_wasm_bin.wasm`
-            return `/mediapipe/hands/${file}`
-          },
-        })
-
-        hands.setOptions({
+        let hands = createHands(HandsClass, 'non-simd')
+        const applyOptions = (target) => target.setOptions({
           maxNumHands:             1,
           modelComplexity:         0,
           minDetectionConfidence:  0.7,
           minTrackingConfidence:   0.5,
           useCpuInference:         true,
         })
+        applyOptions(hands)
 
         hands.onResults(onResults)
-        handsRef.current = hands
 
         // ── Step 4: send first frame to warm up WASM ──────────────────────────
         setStatusMsg('Warming up model…')
-        await hands.send({ image: video })
+        try {
+          await hands.send({ image: video })
+        } catch (warmErr) {
+          const msg = String(warmErr?.message || '').toLowerCase()
+          // Some environments fail only with forced mapping; retry once using
+          // default MediaPipe file resolution names.
+          if (!msg.includes('abort')) throw warmErr
+          hands.close?.()
+          hands = createHands(HandsClass, 'default')
+          applyOptions(hands)
+          hands.onResults(onResults)
+          await hands.send({ image: video })
+        }
+
+        handsRef.current = hands
 
         if (!mounted) return
 
@@ -214,8 +233,15 @@ export function useHandTracking() {
       } catch (err) {
         if (!mounted) return
         console.error('Init error:', err)
-        setStatus('error')
-        setStatusMsg(err.message || 'Something went wrong. Refresh and try again.')
+        const msg = String(err?.message || '')
+        if (msg.toLowerCase().includes('abort')) {
+          // Don't pretend tracking is "ready" when runtime failed; surface error.
+          setStatus('error')
+          setStatusMsg('WASM runtime failed to start on this device. Please refresh and try again.')
+        } else {
+          setStatus('error')
+          setStatusMsg(msg || 'Something went wrong. Refresh and try again.')
+        }
       }
     }
 
