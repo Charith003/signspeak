@@ -175,9 +175,14 @@ export function useHandTracking() {
 
         const hands = new HandsClass({
           locateFile: (file) => {
-            // Force non-SIMD wasm — avoids "Aborted" crash on CPUs without SIMD
-            if (file.includes('simd')) return `/mediapipe/hands/hands_solution_wasm_bin.wasm`
-            return `/mediapipe/hands/${file}`
+            // CPUs/browsers without SIMD support can abort when simd wasm boots.
+            // Keep file types aligned (js/data/wasm -> js/data/wasm), but remap
+            // only the SIMD bundle basename to the non-SIMD equivalent.
+            const resolved = file.replace(
+              'hands_solution_simd_wasm_bin',
+              'hands_solution_wasm_bin',
+            )
+            return `/mediapipe/hands/${resolved}`
           },
         })
 
@@ -215,7 +220,12 @@ export function useHandTracking() {
         if (!mounted) return
         console.error('Init error:', err)
         setStatus('error')
-        setStatusMsg(err.message || 'Something went wrong. Refresh and try again.')
+        const msg = String(err?.message || '')
+        if (msg.toLowerCase().includes('abort')) {
+          setStatusMsg('Your device/browser rejected SIMD WASM. Using non-SIMD fallback failed. Refresh and try again.')
+        } else {
+          setStatusMsg(msg || 'Something went wrong. Refresh and try again.')
+        }
       }
     }
 
