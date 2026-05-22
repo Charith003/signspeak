@@ -140,6 +140,19 @@ export function useHandTracking() {
   useEffect(() => {
     let mounted = true
 
+    const isAbortError = (err) => String(err?.message || '').toLowerCase().includes('abort')
+
+    const createHands = (HandsClass, forceNonSimd = false) => new HandsClass({
+      locateFile: (file) => {
+        // Optional fallback for devices that abort on SIMD WASM.
+        // Keep extension/type aligned (js/data/wasm), only swap basename.
+        const resolved = forceNonSimd
+          ? file.replace('hands_solution_simd_wasm_bin', 'hands_solution_wasm_bin')
+          : file
+        return `/mediapipe/hands/${resolved}`
+      },
+    })
+
     async function init() {
       try {
         // ── Step 1: camera ───────────────────────────────────────────────────
@@ -173,33 +186,34 @@ export function useHandTracking() {
         // ── Step 3: create & configure Hands instance ─────────────────────────
         setStatusMsg('Initialising hand tracking…')
 
-        const hands = new HandsClass({
-          locateFile: (file) => {
-            // CPUs/browsers without SIMD support can abort when simd wasm boots.
-            // Keep file types aligned (js/data/wasm -> js/data/wasm), but remap
-            // only the SIMD bundle basename to the non-SIMD equivalent.
-            const resolved = file.replace(
-              'hands_solution_simd_wasm_bin',
-              'hands_solution_wasm_bin',
-            )
-            return `/mediapipe/hands/${resolved}`
-          },
-        })
-
-        hands.setOptions({
+        let hands = createHands(HandsClass, false)
+        const applyOptions = (target) => target.setOptions({
           maxNumHands:             1,
           modelComplexity:         0,
           minDetectionConfidence:  0.7,
           minTrackingConfidence:   0.5,
           useCpuInference:         true,
         })
+        applyOptions(hands)
 
         hands.onResults(onResults)
-        handsRef.current = hands
 
         // ── Step 4: send first frame to warm up WASM ──────────────────────────
         setStatusMsg('Warming up model…')
-        await hands.send({ image: video })
+        try {
+          await hands.send({ image: video })
+        } catch (err) {
+          if (!isAbortError(err)) throw err
+          // Retry once in explicit non-SIMD mode.
+          setStatusMsg('Retrying with non-SIMD fallback…')
+          hands.close?.()
+          hands = createHands(HandsClass, true)
+          applyOptions(hands)
+          hands.onResults(onResults)
+          await hands.send({ image: video })
+        }
+
+        handsRef.current = hands
 
         if (!mounted) return
 
@@ -222,7 +236,7 @@ export function useHandTracking() {
         setStatus('error')
         const msg = String(err?.message || '')
         if (msg.toLowerCase().includes('abort')) {
-          setStatusMsg('Your device/browser rejected SIMD WASM. Using non-SIMD fallback failed. Refresh and try again.')
+          setStatusMsg('Hand-tracking runtime failed to start on this device (WASM abort). Please refresh and close other camera apps, then retry.')
         } else {
           setStatusMsg(msg || 'Something went wrong. Refresh and try again.')
         }
