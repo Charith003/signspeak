@@ -213,6 +213,8 @@ export function useHandTracking() {
 
         handsRef.current = hands
 
+        handsRef.current = hands
+
         if (!mounted) return
 
         setStatus('ready')
@@ -231,11 +233,16 @@ export function useHandTracking() {
       } catch (err) {
         if (!mounted) return
         console.error('Init error:', err)
-        setStatus('error')
         const msg = String(err?.message || '')
         if (msg.toLowerCase().includes('abort')) {
-          setStatusMsg('Hand-tracking runtime failed to start on this device (WASM abort). Please refresh and close other camera apps, then retry.')
+          // Graceful degradation: keep camera UI available even if WASM runtime
+          // cannot start on this device/browser.
+          setStatus('ready')
+          setStatusMsg('Hand tracking unavailable on this browser/device.')
+          setHandsCount(0)
+          setCurrentSign(null)
         } else {
+          setStatus('error')
           setStatusMsg(msg || 'Something went wrong. Refresh and try again.')
         }
       }
