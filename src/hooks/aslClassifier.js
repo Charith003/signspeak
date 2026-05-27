@@ -183,14 +183,14 @@ export function classifyASL(landmarks) {
   if (f.index && !f.middle && !f.ring && f.pinky && f.thumb)
     return { sign: 'LOVE ❤', type: 'word', confidence: 0.93 }
 
-  // GOOD — thumb up
-  if (f.thumb && !f.index && !f.middle && !f.ring && !f.pinky)
-    return { sign: 'GOOD 👍', type: 'word', confidence: 0.92 }
-
   // BAD — thumb down (thumb extended, others curled, tip pointing down)
   if (f.thumb && !f.index && !f.middle && !f.ring && !f.pinky
       && lm[4].y > lm[3].y)   // tip below IP joint → pointing down
     return { sign: 'BAD 👎', type: 'word', confidence: 0.88 }
+
+  // GOOD — thumb up
+  if (f.thumb && !f.index && !f.middle && !f.ring && !f.pinky)
+    return { sign: 'GOOD 👍', type: 'word', confidence: 0.92 }
 
   // PEACE / THANK YOU — index + middle spread, palm out
   if (f.index && f.middle && !f.ring && !f.pinky

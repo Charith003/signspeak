@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useHandTracking } from './hooks/useHandTracking.js'
 import styles from './App.module.css'
 
@@ -52,11 +52,14 @@ export default function App() {
   const prevSign = useRef('')
 
   // Auto-TTS per word
-  if (tts && currentSign && currentSign.sign !== prevSign.current) {
-    prevSign.current = currentSign.sign
-    speakText(currentSign.sign)
-  }
-  if (!currentSign) prevSign.current = ''
+  useEffect(() => {
+    if (tts && currentSign && currentSign.sign !== prevSign.current) {
+      prevSign.current = currentSign.sign
+      speakText(currentSign.sign)
+    }
+
+    if (!currentSign) prevSign.current = ''
+  }, [tts, currentSign])
 
   const confColor = !currentSign ? 'var(--t3)'
     : currentSign.stability >= 80 ? 'var(--acc)'
