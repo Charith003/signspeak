@@ -90,8 +90,6 @@ export function classifyASL(landmarks) {
   // Derived distances (normalised by hand scale)
   const thumbTipIndex  = dist(lm[4], lm[8])  / sc
   const thumbTipMiddle = dist(lm[4], lm[12]) / sc
-  const thumbTipRing   = dist(lm[4], lm[16]) / sc
-  const thumbTipPinky  = dist(lm[4], lm[20]) / sc
   const indexMiddleTip = dist(lm[8], lm[12]) / sc
   const thumbIndexBase = dist(lm[4], lm[5])  / sc
 
@@ -120,7 +118,7 @@ export function classifyASL(landmarks) {
 
   // E — all fingers curled, thumb tucked under
   if (!f.index && !f.middle && !f.ring && !f.pinky && !f.thumb
-      && f.indexCurl > 0.5 && f.middleCurl > 0.5)
+      && f.indexCurl > 0.5 && f.middleCurl > 0.5 && thumbIndexBase < 0.55)
     return { sign: 'E', type: 'letter', confidence: 0.80 }
 
   // F — index+thumb touch, others extended
@@ -183,14 +181,14 @@ export function classifyASL(landmarks) {
   if (f.index && !f.middle && !f.ring && f.pinky && f.thumb)
     return { sign: 'LOVE ❤', type: 'word', confidence: 0.93 }
 
-  // GOOD — thumb up
-  if (f.thumb && !f.index && !f.middle && !f.ring && !f.pinky)
-    return { sign: 'GOOD 👍', type: 'word', confidence: 0.92 }
-
   // BAD — thumb down (thumb extended, others curled, tip pointing down)
   if (f.thumb && !f.index && !f.middle && !f.ring && !f.pinky
       && lm[4].y > lm[3].y)   // tip below IP joint → pointing down
     return { sign: 'BAD 👎', type: 'word', confidence: 0.88 }
+
+  // GOOD — thumb up
+  if (f.thumb && !f.index && !f.middle && !f.ring && !f.pinky)
+    return { sign: 'GOOD 👍', type: 'word', confidence: 0.92 }
 
   // PEACE / THANK YOU — index + middle spread, palm out
   if (f.index && f.middle && !f.ring && !f.pinky
@@ -213,7 +211,7 @@ export function classifyASL(landmarks) {
 
   // MORE — both hands pinched (single hand: O shape with touch)
   if (!f.index && !f.middle && !f.ring && !f.pinky && !f.thumb
-      && thumbTipIndex < 0.35)
+      && thumbTipIndex < 0.35 && f.indexCurl > 0.25)
     return { sign: 'MORE', type: 'word', confidence: 0.81 }
 
   // POINT / WHERE — single index finger pointing up

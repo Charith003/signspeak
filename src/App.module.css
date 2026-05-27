@@ -374,6 +374,12 @@
   border-top: 1px solid var(--b1);
   display: flex; justify-content: space-between;
   font-size: .64rem; color: var(--t3);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shortcutHint {
+  color: var(--t2);
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
