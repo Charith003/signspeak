@@ -374,6 +374,12 @@
   border-top: 1px solid var(--b1);
   display: flex; justify-content: space-between;
   font-size: .64rem; color: var(--t3);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shortcutHint {
+  color: var(--t2);
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
@@ -411,3 +417,70 @@
 /* ── Chip variants ── */
 .chipGreen  { background:rgba(0,229,160,.08);   color:var(--acc);  border:1px solid rgba(0,229,160,.2); }
 .chipOrange { background:rgba(245,166,35,.08);  color:var(--warn); border:1px solid rgba(245,166,35,.2); }
+
+
+/* Added layout helpers for recent App.jsx updates */
+.sentMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.counts {
+  font-size: .68rem;
+  color: var(--t3);
+  letter-spacing: .02em;
+}
+
+.settingsPanel {
+  margin-top: 12px;
+  border-top: 1px solid var(--b1);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingRow label {
+  font-size: .68rem;
+  color: var(--t2);
+}
+
+.settingRow input[type="range"] {
+  width: 100%;
+  accent-color: var(--acc);
+}
+
+.statHighlight {
+  font-family: var(--fh);
+  font-weight: 800;
+  color: var(--acc);
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.panelTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filterButtons {
+  display: flex;
+  gap: 6px;
+}
+
+.histActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
