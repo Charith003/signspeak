@@ -30,6 +30,13 @@ const SIGN_REFERENCE = [
   { sign: 'WHERE?', desc: 'Single index pointing up', category: 'word' },
 ]
 
+const SHORTCUTS = [
+  { key: 'T', action: 'Toggle Auto TTS' },
+  { key: 'C', action: 'Clear sentence' },
+  { key: 'H', action: 'Clear history' },
+  { key: 'S', action: 'Toggle settings' },
+]
+
 const STORAGE_KEYS = {
   ttsEnabled: 'signspeak.ttsEnabled',
   tab: 'signspeak.tab',
@@ -54,6 +61,18 @@ function writeStoredValue(key, value) {
   } catch {
     // no-op when storage is unavailable
   }
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function sanitizeTab(value) {
+  return value === 'guide' ? 'guide' : 'stats'
+}
+
+function sanitizeGuideFilter(value) {
+  return ['all', 'letter', 'word'].includes(value) ? value : 'all'
 }
 
 function speakText(text, rate, pitch) {
@@ -110,10 +129,10 @@ export default function App() {
   } = useHandTracking()
 
   const [tts, setTts] = useState(() => readStoredValue(STORAGE_KEYS.ttsEnabled, true))
-  const [tab, setTab] = useState(() => readStoredValue(STORAGE_KEYS.tab, 'stats'))
-  const [speechRate, setSpeechRate] = useState(() => readStoredValue(STORAGE_KEYS.speechRate, 0.92))
-  const [speechPitch, setSpeechPitch] = useState(() => readStoredValue(STORAGE_KEYS.speechPitch, 1))
-  const [guideFilter, setGuideFilter] = useState(() => readStoredValue(STORAGE_KEYS.guideFilter, 'all'))
+  const [tab, setTab] = useState(() => sanitizeTab(readStoredValue(STORAGE_KEYS.tab, 'stats')))
+  const [speechRate, setSpeechRate] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechRate, 0.92), 0.6, 1.4))
+  const [speechPitch, setSpeechPitch] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechPitch, 1), 0.5, 1.5))
+  const [guideFilter, setGuideFilter] = useState(() => sanitizeGuideFilter(readStoredValue(STORAGE_KEYS.guideFilter, 'all')))
 
   const [copied, setCopied] = useState(false)
   const [historyExported, setHistoryExported] = useState(false)
@@ -184,6 +203,14 @@ export default function App() {
   }, [guideFilter])
 
   const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
+
+  useEffect(() => {
+    if (sentence.length === 0) setCopied(false)
+  }, [sentence.length])
+
+  useEffect(() => {
+    if (history.length === 0) setHistoryExported(false)
+  }, [history.length])
 
   return (
     <div className={styles.app}>
@@ -308,11 +335,11 @@ export default function App() {
                 Speak sentence
               </button>
 
-              <button className={`${styles.btn} ${tts ? styles.btnAccent2 : ''}`} onClick={() => setTts((v) => !v)}>
+              <button aria-label="Toggle automatic text to speech" className={`${styles.btn} ${tts ? styles.btnAccent2 : ''}`} onClick={() => setTts((v) => !v)}>
                 Auto TTS: {tts ? 'ON' : 'OFF'}
               </button>
 
-              <button className={styles.btn} onClick={clearSentence} disabled={sentence.length === 0}>
+              <button aria-label="Clear current sentence" className={styles.btn} onClick={clearSentence} disabled={sentence.length === 0}>
                 Clear
               </button>
 
@@ -465,6 +492,7 @@ export default function App() {
               <button className={`${styles.btn} ${styles.btnSm}`} onClick={clearHistory}>Clear all</button>
               <button
                 className={`${styles.btn} ${styles.btnSm}`}
+                disabled={history.length === 0}
                 onClick={() => {
                   const ok = exportHistory(history)
                   if (ok) {
@@ -497,7 +525,7 @@ export default function App() {
       <footer className={styles.footer}>
         <span>MediaPipe Hands (local) · Geometry classifier · Web Speech API</span>
         <span>100% offline after install · No model files</span>
-        <span className={styles.shortcutHint}>Shortcuts: [T] TTS · [C] Clear sentence · [H] Clear history · [S] Settings</span>
+        <span className={styles.shortcutHint}>Shortcuts: {SHORTCUTS.map((s) => `[${s.key}] ${s.action}`).join(' · ')}</span>
       </footer>
     </div>
   )

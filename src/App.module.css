@@ -484,3 +484,21 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+
+
+.settingRow input[type="range"]:focus-visible {
+  outline: 2px solid var(--acc2);
+  outline-offset: 2px;
+}
+
+.filterButtons .btn {
+  padding: 5px 10px;
+}
+
+.counts {
+  white-space: nowrap;
+}
+
+.histActions .btn:disabled {
+  opacity: .35;
+}
