@@ -94,12 +94,6 @@ function exportHistory(history) {
   }
 }
 
-function copyText(text) {
-  if (!text || !navigator.clipboard) return false
-  navigator.clipboard.writeText(text).catch(() => {})
-  return true
-}
-
 export default function App() {
   const {
     videoRef,
