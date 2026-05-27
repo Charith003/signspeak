@@ -30,6 +30,13 @@ const SIGN_REFERENCE = [
   { sign: 'WHERE?', desc: 'Single index pointing up', category: 'word' },
 ]
 
+const STATUS_LABELS = {
+  init: 'Initializing',
+  loading: 'Loading',
+  ready: 'Ready',
+  error: 'Error',
+}
+
 const SHORTCUTS = [
   { key: 'T', action: 'Toggle Auto TTS' },
   { key: 'C', action: 'Clear sentence' },
@@ -137,6 +144,8 @@ export default function App() {
   const [copied, setCopied] = useState(false)
   const [historyExported, setHistoryExported] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [sessionStartedAt] = useState(() => Date.now())
+  const [nowTs, setNowTs] = useState(() => Date.now())
   const prevSign = useRef('')
 
   useEffect(() => {
@@ -203,6 +212,9 @@ export default function App() {
   }, [guideFilter])
 
   const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
+  const avgWordsPerSentence = history.length === 0 ? 0 : (recognizedTotal / history.length)
+  const activeLabel = STATUS_LABELS[status] || 'Unknown'
+  const elapsedMin = Math.max(1, Math.round((nowTs - sessionStartedAt) / 60000))
 
   useEffect(() => {
     if (sentence.length === 0) setCopied(false)
@@ -211,6 +223,11 @@ export default function App() {
   useEffect(() => {
     if (history.length === 0) setHistoryExported(false)
   }, [history.length])
+
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 30000)
+    return () => clearInterval(id)
+  }, [])
 
   return (
     <div className={styles.app}>
@@ -362,6 +379,11 @@ export default function App() {
               </button>
             </div>
 
+            <div className={styles.quickHelp}>
+              <span>Tip: Hold signs steady for consistent stability.</span>
+              <span>Current mode: {tab === 'stats' ? 'Live stats' : 'Sign guide'}</span>
+            </div>
+
             {showSettings && (
               <div className={styles.settingsPanel}>
                 <div className={styles.settingRow}>
@@ -406,6 +428,10 @@ export default function App() {
           {tab === 'stats' ? (
             <div className={styles.panel}>
               <div className={styles.panelLabel}>Recognition</div>
+              <div className={styles.statusRibbon}>
+                <span className={styles.statusBadge}>{activeLabel}</span>
+                <span className={styles.statusSub}>Session {elapsedMin} min</span>
+              </div>
 
               <div className={styles.statRow}>
                 <span className={styles.statKey}>Sign</span>

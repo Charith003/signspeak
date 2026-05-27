@@ -502,3 +502,42 @@
 .histActions .btn:disabled {
   opacity: .35;
 }
+
+
+.statusRibbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.statusBadge {
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--acc);
+  border: 1px solid rgba(0,229,160,.25);
+  background: rgba(0,229,160,.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.statusSub {
+  font-size: .66rem;
+  color: var(--t3);
+}
+
+.quickHelp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+  font-size: .68rem;
+  color: var(--t3);
+}
+
+.quickHelp span::before {
+  content: '• ';
+  color: var(--acc2);
+}
