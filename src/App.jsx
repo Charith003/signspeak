@@ -38,6 +38,12 @@ function speakText(text) {
   window.speechSynthesis.speak(u)
 }
 
+function copyText(text) {
+  if (!text || !navigator.clipboard) return false
+  navigator.clipboard.writeText(text).catch(() => {})
+  return true
+}
+
 export default function App() {
   const {
     videoRef, canvasRef,
@@ -49,6 +55,7 @@ export default function App() {
 
   const [tts, setTts] = useState(true)
   const [tab, setTab] = useState('stats')
+  const [copied, setCopied] = useState(false)
   const prevSign = useRef('')
 
   // Auto-TTS per word
@@ -60,6 +67,17 @@ export default function App() {
 
     if (!currentSign) prevSign.current = ''
   }, [tts, currentSign])
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key.toLowerCase() === 't') setTts(v => !v)
+      if (e.key.toLowerCase() === 'c') clearSentence()
+      if (e.key.toLowerCase() === 'h') clearHistory()
+    }
+
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [clearHistory, clearSentence])
 
   const confColor = !currentSign ? 'var(--t3)'
     : currentSign.stability >= 80 ? 'var(--acc)'
@@ -191,6 +209,17 @@ export default function App() {
                 onClick={clearSentence} disabled={sentence.length === 0}>
                 Clear
               </button>
+              <button className={styles.btn}
+                onClick={() => {
+                  const ok = copyText(sentence.join(' '))
+                  if (ok) {
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 1200)
+                  }
+                }}
+                disabled={sentence.length === 0}>
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
             </div>
           </div>
         </div>
@@ -263,6 +292,7 @@ export default function App() {
                 <li>Keep full hand in frame</li>
                 <li>Plain background works best</li>
                 <li>Pause 2 s to save sentence</li>
+                <li>Shortcuts: T toggle TTS · C clear sentence · H clear history</li>
               </ul>
             </div>
           ) : (
@@ -309,6 +339,7 @@ export default function App() {
       <footer className={styles.footer}>
         <span>MediaPipe Hands (local) · Geometry classifier · Web Speech API</span>
         <span>100% offline after install · No model files</span>
+        <span className={styles.shortcutHint}>Shortcuts: [T] TTS · [C] Clear sentence · [H] Clear history</span>
       </footer>
     </div>
   )
