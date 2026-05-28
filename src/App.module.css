@@ -541,3 +541,63 @@
   content: '• ';
   color: var(--acc2);
 }
+
+
+.goalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.goalCard {
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--b1);
+  border-radius: var(--rs);
+  padding: 9px;
+}
+
+.goalDone {
+  border-color: rgba(0,229,160,.35);
+  background: rgba(0,229,160,.06);
+}
+
+.goalTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: .65rem;
+  color: var(--t2);
+}
+
+.goalTop strong {
+  color: var(--acc);
+  font-size: .68rem;
+}
+
+.goalTrack {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--s2);
+  overflow: hidden;
+  margin: 8px 0 6px;
+}
+
+.goalFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--acc2), var(--acc));
+  transition: width .25s ease;
+}
+
+.goalMeta {
+  font-size: .61rem;
+  color: var(--t3);
+}
+
+@media (max-width: 520px) {
+  .goalGrid {
+    grid-template-columns: 1fr;
+  }
+}

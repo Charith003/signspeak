@@ -52,6 +52,21 @@ const STORAGE_KEYS = {
   guideFilter: 'signspeak.guideFilter',
 }
 
+const DEFAULT_SETTINGS = {
+  tts: true,
+  tab: 'stats',
+  speechRate: 0.92,
+  speechPitch: 1,
+  guideFilter: 'all',
+}
+
+const PRACTICE_GOALS = [
+  { key: 'sentence', label: 'Build sentence', target: 5, suffix: 'words' },
+  { key: 'sessionWords', label: 'Session words', target: 25, suffix: 'words' },
+  { key: 'history', label: 'Saved phrases', target: 3, suffix: 'saved' },
+  { key: 'stability', label: 'Stable sign', target: 80, suffix: '%' },
+]
+
 function readStoredValue(key, fallback) {
   try {
     const value = localStorage.getItem(key)
@@ -80,6 +95,27 @@ function sanitizeTab(value) {
 
 function sanitizeGuideFilter(value) {
   return ['all', 'letter', 'word'].includes(value) ? value : 'all'
+}
+
+function buildPracticeGoals({ wordCount, recognizedTotal, historyLength, stability }) {
+  const values = {
+    sentence: wordCount,
+    sessionWords: recognizedTotal,
+    history: historyLength,
+    stability,
+  }
+
+  return PRACTICE_GOALS.map((goal) => {
+    const value = values[goal.key] || 0
+    const progress = clamp((value / goal.target) * 100, 0, 100)
+
+    return {
+      ...goal,
+      value,
+      progress,
+      complete: progress >= 100,
+    }
+  })
 }
 
 function speakText(text, rate, pitch) {
@@ -135,11 +171,11 @@ export default function App() {
     clearHistory,
   } = useHandTracking()
 
-  const [tts, setTts] = useState(() => readStoredValue(STORAGE_KEYS.ttsEnabled, true))
-  const [tab, setTab] = useState(() => sanitizeTab(readStoredValue(STORAGE_KEYS.tab, 'stats')))
-  const [speechRate, setSpeechRate] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechRate, 0.92), 0.6, 1.4))
-  const [speechPitch, setSpeechPitch] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechPitch, 1), 0.5, 1.5))
-  const [guideFilter, setGuideFilter] = useState(() => sanitizeGuideFilter(readStoredValue(STORAGE_KEYS.guideFilter, 'all')))
+  const [tts, setTts] = useState(() => readStoredValue(STORAGE_KEYS.ttsEnabled, DEFAULT_SETTINGS.tts))
+  const [tab, setTab] = useState(() => sanitizeTab(readStoredValue(STORAGE_KEYS.tab, DEFAULT_SETTINGS.tab)))
+  const [speechRate, setSpeechRate] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechRate, DEFAULT_SETTINGS.speechRate), 0.6, 1.4))
+  const [speechPitch, setSpeechPitch] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechPitch, DEFAULT_SETTINGS.speechPitch), 0.5, 1.5))
+  const [guideFilter, setGuideFilter] = useState(() => sanitizeGuideFilter(readStoredValue(STORAGE_KEYS.guideFilter, DEFAULT_SETTINGS.guideFilter)))
 
   const [copied, setCopied] = useState(false)
   const [historyExported, setHistoryExported] = useState(false)
@@ -147,6 +183,15 @@ export default function App() {
   const [sessionStartedAt] = useState(() => Date.now())
   const [nowTs, setNowTs] = useState(() => Date.now())
   const prevSign = useRef('')
+
+  const resetPreferences = () => {
+    setTts(DEFAULT_SETTINGS.tts)
+    setTab(DEFAULT_SETTINGS.tab)
+    setSpeechRate(DEFAULT_SETTINGS.speechRate)
+    setSpeechPitch(DEFAULT_SETTINGS.speechPitch)
+    setGuideFilter(DEFAULT_SETTINGS.guideFilter)
+    setShowSettings(false)
+  }
 
   useEffect(() => {
     writeStoredValue(STORAGE_KEYS.ttsEnabled, tts)
@@ -215,6 +260,13 @@ export default function App() {
   const avgWordsPerSentence = history.length === 0 ? 0 : (recognizedTotal / history.length)
   const activeLabel = STATUS_LABELS[status] || 'Unknown'
   const elapsedMin = Math.max(1, Math.round((nowTs - sessionStartedAt) / 60000))
+  const currentStability = currentSign?.stability || 0
+  const practiceGoals = buildPracticeGoals({
+    wordCount,
+    recognizedTotal,
+    historyLength: history.length,
+    stability: currentStability,
+  })
 
   useEffect(() => {
     if (sentence.length === 0) setCopied(false)
@@ -410,6 +462,9 @@ export default function App() {
                     onChange={(e) => setSpeechPitch(Number(e.target.value))}
                   />
                 </div>
+                <button className={`${styles.btn} ${styles.btnSm}`} onClick={resetPreferences}>
+                  Reset saved preferences
+                </button>
               </div>
             )}
           </div>
@@ -431,6 +486,23 @@ export default function App() {
               <div className={styles.statusRibbon}>
                 <span className={styles.statusBadge}>{activeLabel}</span>
                 <span className={styles.statusSub}>Session {elapsedMin} min</span>
+              </div>
+
+              <div className={styles.goalGrid}>
+                {practiceGoals.map((goal) => (
+                  <div key={goal.key} className={`${styles.goalCard} ${goal.complete ? styles.goalDone : ''}`}>
+                    <div className={styles.goalTop}>
+                      <span>{goal.label}</span>
+                      <strong>{Math.round(goal.progress)}%</strong>
+                    </div>
+                    <div className={styles.goalTrack}>
+                      <div className={styles.goalFill} style={{ width: `${goal.progress}%` }} />
+                    </div>
+                    <span className={styles.goalMeta}>
+                      {goal.value} / {goal.target} {goal.suffix}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               <div className={styles.statRow}>
@@ -473,6 +545,11 @@ export default function App() {
               <div className={styles.statRow}>
                 <span className={styles.statKey}>History</span>
                 <span className={styles.statVal}>{history.length} entries · {recognizedTotal} words total</span>
+              </div>
+
+              <div className={styles.statRow}>
+                <span className={styles.statKey}>Avg words</span>
+                <span className={styles.statVal}>{avgWordsPerSentence.toFixed(1)} / sentence</span>
               </div>
 
               <div className={styles.divider} />
