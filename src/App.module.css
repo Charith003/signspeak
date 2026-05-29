@@ -374,6 +374,12 @@
   border-top: 1px solid var(--b1);
   display: flex; justify-content: space-between;
   font-size: .64rem; color: var(--t3);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.shortcutHint {
+  color: var(--t2);
 }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
@@ -411,3 +417,363 @@
 /* ── Chip variants ── */
 .chipGreen  { background:rgba(0,229,160,.08);   color:var(--acc);  border:1px solid rgba(0,229,160,.2); }
 .chipOrange { background:rgba(245,166,35,.08);  color:var(--warn); border:1px solid rgba(245,166,35,.2); }
+
+
+/* Added layout helpers for recent App.jsx updates */
+.sentMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.counts {
+  font-size: .68rem;
+  color: var(--t3);
+  letter-spacing: .02em;
+}
+
+.settingsPanel {
+  margin-top: 12px;
+  border-top: 1px solid var(--b1);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settingRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settingRow label {
+  font-size: .68rem;
+  color: var(--t2);
+}
+
+.settingRow input[type="range"] {
+  width: 100%;
+  accent-color: var(--acc);
+}
+
+.statHighlight {
+  font-family: var(--fh);
+  font-weight: 800;
+  color: var(--acc);
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.panelTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.filterButtons {
+  display: flex;
+  gap: 6px;
+}
+
+.histActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+
+.settingRow input[type="range"]:focus-visible {
+  outline: 2px solid var(--acc2);
+  outline-offset: 2px;
+}
+
+.filterButtons .btn {
+  padding: 5px 10px;
+}
+
+.counts {
+  white-space: nowrap;
+}
+
+.histActions .btn:disabled {
+  opacity: .35;
+}
+
+
+.statusRibbon {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.statusBadge {
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--acc);
+  border: 1px solid rgba(0,229,160,.25);
+  background: rgba(0,229,160,.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.statusSub {
+  font-size: .66rem;
+  color: var(--t3);
+}
+
+.quickHelp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 10px;
+  font-size: .68rem;
+  color: var(--t3);
+}
+
+.quickHelp span::before {
+  content: '• ';
+  color: var(--acc2);
+}
+
+
+.goalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.goalCard {
+  background: rgba(255,255,255,.025);
+  border: 1px solid var(--b1);
+  border-radius: var(--rs);
+  padding: 9px;
+}
+
+.goalDone {
+  border-color: rgba(0,229,160,.35);
+  background: rgba(0,229,160,.06);
+}
+
+.goalTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: .65rem;
+  color: var(--t2);
+}
+
+.goalTop strong {
+  color: var(--acc);
+  font-size: .68rem;
+}
+
+.goalTrack {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--s2);
+  overflow: hidden;
+  margin: 8px 0 6px;
+}
+
+.goalFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--acc2), var(--acc));
+  transition: width .25s ease;
+}
+
+.goalMeta {
+  font-size: .61rem;
+  color: var(--t3);
+}
+
+@media (max-width: 520px) {
+  .goalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.practiceList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.practiceCard {
+  background: var(--s2);
+  border: 1px solid var(--b1);
+  border-radius: var(--rs);
+  padding: 12px;
+}
+
+.practiceHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.practiceHead h3 {
+  margin: 0 0 4px;
+  font-family: var(--fh);
+  font-size: .92rem;
+  color: var(--t1);
+}
+
+.practiceHead p {
+  margin: 0;
+  font-size: .68rem;
+  line-height: 1.45;
+  color: var(--t2);
+}
+
+.practiceLevel {
+  flex-shrink: 0;
+  border: 1px solid rgba(124,109,250,.28);
+  color: var(--acc2);
+  background: rgba(124,109,250,.08);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.practiceMeta {
+  display: flex;
+  gap: 10px;
+  margin: 9px 0;
+  color: var(--t3);
+  font-size: .65rem;
+}
+
+.practiceSigns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.practiceSigns span {
+  border: 1px solid rgba(0,229,160,.18);
+  color: var(--acc);
+  background: rgba(0,229,160,.06);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: .64rem;
+  font-weight: 700;
+}
+
+.practiceDetails {
+  border-top: 1px solid var(--b1);
+  padding-top: 8px;
+  font-size: .68rem;
+  color: var(--t2);
+}
+
+.practiceDetails summary {
+  cursor: pointer;
+  color: var(--t1);
+}
+
+.practiceDetails ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.practiceDetails li {
+  margin-bottom: 5px;
+}
+
+
+.achievementList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.achievementCard {
+  background: linear-gradient(180deg, rgba(124,109,250,.08), rgba(255,255,255,.02));
+  border: 1px solid rgba(124,109,250,.2);
+  border-radius: var(--rs);
+  padding: 12px;
+}
+
+.achievementHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.achievementHead h3 {
+  margin: 0 0 4px;
+  font-family: var(--fh);
+  font-size: .9rem;
+  color: var(--t1);
+}
+
+.achievementHead p {
+  margin: 0;
+  font-size: .68rem;
+  line-height: 1.45;
+  color: var(--t2);
+}
+
+.achievementTier {
+  flex-shrink: 0;
+  border: 1px solid rgba(0,229,160,.24);
+  color: var(--acc);
+  background: rgba(0,229,160,.07);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.achievementMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 9px 0;
+  color: var(--t3);
+  font-size: .65rem;
+}
+
+.achievementDetails {
+  border-top: 1px solid rgba(124,109,250,.18);
+  padding-top: 8px;
+  font-size: .68rem;
+  color: var(--t2);
+}
+
+.achievementDetails summary {
+  cursor: pointer;
+  color: var(--t1);
+}
+
+.achievementDetails ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.achievementDetails li {
+  margin-bottom: 5px;
+}
