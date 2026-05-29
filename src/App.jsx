@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHandTracking } from './hooks/useHandTracking.js'
+import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_LIBRARY } from './data/achievementLibrary.js'
 import { PRACTICE_LIBRARY, PRACTICE_LEVELS } from './data/practiceLibrary.js'
 import styles from './App.module.css'
 
@@ -44,6 +45,7 @@ const SHORTCUTS = [
   { key: 'H', action: 'Clear history' },
   { key: 'S', action: 'Toggle settings' },
   { key: 'P', action: 'Open practice' },
+  { key: 'A', action: 'Open achievements' },
 ]
 
 const STORAGE_KEYS = {
@@ -53,6 +55,7 @@ const STORAGE_KEYS = {
   speechPitch: 'signspeak.speechPitch',
   guideFilter: 'signspeak.guideFilter',
   practiceLevel: 'signspeak.practiceLevel',
+  achievementCategory: 'signspeak.achievementCategory',
 }
 
 const DEFAULT_SETTINGS = {
@@ -62,6 +65,7 @@ const DEFAULT_SETTINGS = {
   speechPitch: 1,
   guideFilter: 'all',
   practiceLevel: 'All',
+  achievementCategory: 'All',
 }
 
 const PRACTICE_GOALS = [
@@ -94,7 +98,7 @@ function clamp(value, min, max) {
 }
 
 function sanitizeTab(value) {
-  return ['stats', 'guide', 'practice'].includes(value) ? value : DEFAULT_SETTINGS.tab
+  return ['stats', 'guide', 'practice', 'achievements'].includes(value) ? value : DEFAULT_SETTINGS.tab
 }
 
 function sanitizeGuideFilter(value) {
@@ -103,6 +107,10 @@ function sanitizeGuideFilter(value) {
 
 function sanitizePracticeLevel(value) {
   return PRACTICE_LEVELS.includes(value) ? value : DEFAULT_SETTINGS.practiceLevel
+}
+
+function sanitizeAchievementCategory(value) {
+  return ACHIEVEMENT_CATEGORIES.includes(value) ? value : DEFAULT_SETTINGS.achievementCategory
 }
 
 function buildPracticeGoals({ wordCount, recognizedTotal, historyLength, stability }) {
@@ -185,6 +193,7 @@ export default function App() {
   const [speechPitch, setSpeechPitch] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechPitch, DEFAULT_SETTINGS.speechPitch), 0.5, 1.5))
   const [guideFilter, setGuideFilter] = useState(() => sanitizeGuideFilter(readStoredValue(STORAGE_KEYS.guideFilter, DEFAULT_SETTINGS.guideFilter)))
   const [practiceLevel, setPracticeLevel] = useState(() => sanitizePracticeLevel(readStoredValue(STORAGE_KEYS.practiceLevel, DEFAULT_SETTINGS.practiceLevel)))
+  const [achievementCategory, setAchievementCategory] = useState(() => sanitizeAchievementCategory(readStoredValue(STORAGE_KEYS.achievementCategory, DEFAULT_SETTINGS.achievementCategory)))
 
   const [copied, setCopied] = useState(false)
   const [historyExported, setHistoryExported] = useState(false)
@@ -200,6 +209,7 @@ export default function App() {
     setSpeechPitch(DEFAULT_SETTINGS.speechPitch)
     setGuideFilter(DEFAULT_SETTINGS.guideFilter)
     setPracticeLevel(DEFAULT_SETTINGS.practiceLevel)
+    setAchievementCategory(DEFAULT_SETTINGS.achievementCategory)
     setShowSettings(false)
   }
 
@@ -227,6 +237,10 @@ export default function App() {
     writeStoredValue(STORAGE_KEYS.practiceLevel, practiceLevel)
   }, [practiceLevel])
 
+  useEffect(() => {
+    writeStoredValue(STORAGE_KEYS.achievementCategory, achievementCategory)
+  }, [achievementCategory])
+
   // Auto-TTS per word
   useEffect(() => {
     if (tts && currentSign && currentSign.sign !== prevSign.current) {
@@ -246,6 +260,7 @@ export default function App() {
       if (key === 'h') clearHistory()
       if (key === 's') setShowSettings((v) => !v)
       if (key === 'p') setTab('practice')
+      if (key === 'a') setTab('achievements')
     }
 
     window.addEventListener('keydown', onKey)
@@ -275,6 +290,11 @@ export default function App() {
     if (practiceLevel === 'All') return PRACTICE_LIBRARY
     return PRACTICE_LIBRARY.filter((lesson) => lesson.level === practiceLevel)
   }, [practiceLevel])
+
+  const filteredAchievements = useMemo(() => {
+    if (achievementCategory === 'All') return ACHIEVEMENT_LIBRARY
+    return ACHIEVEMENT_LIBRARY.filter((achievement) => achievement.category === achievementCategory)
+  }, [achievementCategory])
 
   const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
   const avgWordsPerSentence = history.length === 0 ? 0 : (recognizedTotal / history.length)
@@ -453,7 +473,7 @@ export default function App() {
 
             <div className={styles.quickHelp}>
               <span>Tip: Hold signs steady for consistent stability.</span>
-              <span>Current mode: {tab === 'stats' ? 'Live stats' : tab === 'guide' ? 'Sign guide' : 'Practice library'}</span>
+              <span>Current mode: {tab === 'stats' ? 'Live stats' : tab === 'guide' ? 'Sign guide' : tab === 'practice' ? 'Practice library' : 'Achievements'}</span>
             </div>
 
             {showSettings && (
@@ -500,6 +520,9 @@ export default function App() {
             </button>
             <button className={`${styles.tab} ${tab === 'practice' ? styles.tabAct : ''}`} onClick={() => setTab('practice')}>
               Practice
+            </button>
+            <button className={`${styles.tab} ${tab === 'achievements' ? styles.tabAct : ''}`} onClick={() => setTab('achievements')}>
+              Awards
             </button>
           </div>
 
@@ -606,7 +629,7 @@ export default function App() {
                 ))}
               </div>
             </div>
-          ) : (
+          ) : tab === 'practice' ? (
             <div className={styles.panel}>
               <div className={styles.panelTopRow}>
                 <div className={styles.panelLabel}>{filteredPractice.length} practice lessons</div>
@@ -647,6 +670,49 @@ export default function App() {
                       <ul>
                         {lesson.drills.slice(0, 2).map((drill) => <li key={drill}>{drill}</li>)}
                         {lesson.successCriteria.slice(0, 1).map((criterion) => <li key={criterion}>{criterion}</li>)}
+                      </ul>
+                    </details>
+                  </article>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.panel}>
+              <div className={styles.panelTopRow}>
+                <div className={styles.panelLabel}>{filteredAchievements.length} achievements</div>
+                <div className={styles.filterButtons}>
+                  {ACHIEVEMENT_CATEGORIES.map((category) => (
+                    <button
+                      key={category}
+                      className={`${styles.btn} ${achievementCategory === category ? styles.btnAccent2 : ''}`}
+                      onClick={() => setAchievementCategory(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.achievementList}>
+                {filteredAchievements.map((achievement) => (
+                  <article key={achievement.id} className={styles.achievementCard}>
+                    <div className={styles.achievementHead}>
+                      <div>
+                        <h3>{achievement.title}</h3>
+                        <p>{achievement.description}</p>
+                      </div>
+                      <span className={styles.achievementTier}>{achievement.tier}</span>
+                    </div>
+                    <div className={styles.achievementMeta}>
+                      <span>{achievement.category}</span>
+                      <span>{achievement.points} pts</span>
+                      <span>Target {achievement.target}</span>
+                    </div>
+                    <details className={styles.achievementDetails}>
+                      <summary>Unlock tips</summary>
+                      <ul>
+                        {achievement.unlockTips.slice(0, 2).map((tip) => <li key={tip}>{tip}</li>)}
+                        {achievement.progressHints.slice(0, 1).map((hint) => <li key={hint}>{hint}</li>)}
                       </ul>
                     </details>
                   </article>

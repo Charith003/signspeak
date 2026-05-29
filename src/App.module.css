@@ -697,3 +697,83 @@
 .practiceDetails li {
   margin-bottom: 5px;
 }
+
+
+.achievementList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.achievementCard {
+  background: linear-gradient(180deg, rgba(124,109,250,.08), rgba(255,255,255,.02));
+  border: 1px solid rgba(124,109,250,.2);
+  border-radius: var(--rs);
+  padding: 12px;
+}
+
+.achievementHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.achievementHead h3 {
+  margin: 0 0 4px;
+  font-family: var(--fh);
+  font-size: .9rem;
+  color: var(--t1);
+}
+
+.achievementHead p {
+  margin: 0;
+  font-size: .68rem;
+  line-height: 1.45;
+  color: var(--t2);
+}
+
+.achievementTier {
+  flex-shrink: 0;
+  border: 1px solid rgba(0,229,160,.24);
+  color: var(--acc);
+  background: rgba(0,229,160,.07);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: .6rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.achievementMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 9px 0;
+  color: var(--t3);
+  font-size: .65rem;
+}
+
+.achievementDetails {
+  border-top: 1px solid rgba(124,109,250,.18);
+  padding-top: 8px;
+  font-size: .68rem;
+  color: var(--t2);
+}
+
+.achievementDetails summary {
+  cursor: pointer;
+  color: var(--t1);
+}
+
+.achievementDetails ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+}
+
+.achievementDetails li {
+  margin-bottom: 5px;
+}
