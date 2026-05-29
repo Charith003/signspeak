@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHandTracking } from './hooks/useHandTracking.js'
+import { PRACTICE_LIBRARY, PRACTICE_LEVELS } from './data/practiceLibrary.js'
 import styles from './App.module.css'
 
 const SIGN_REFERENCE = [
@@ -42,6 +43,7 @@ const SHORTCUTS = [
   { key: 'C', action: 'Clear sentence' },
   { key: 'H', action: 'Clear history' },
   { key: 'S', action: 'Toggle settings' },
+  { key: 'P', action: 'Open practice' },
 ]
 
 const STORAGE_KEYS = {
@@ -50,6 +52,7 @@ const STORAGE_KEYS = {
   speechRate: 'signspeak.speechRate',
   speechPitch: 'signspeak.speechPitch',
   guideFilter: 'signspeak.guideFilter',
+  practiceLevel: 'signspeak.practiceLevel',
 }
 
 const DEFAULT_SETTINGS = {
@@ -58,6 +61,7 @@ const DEFAULT_SETTINGS = {
   speechRate: 0.92,
   speechPitch: 1,
   guideFilter: 'all',
+  practiceLevel: 'All',
 }
 
 const PRACTICE_GOALS = [
@@ -90,11 +94,15 @@ function clamp(value, min, max) {
 }
 
 function sanitizeTab(value) {
-  return value === 'guide' ? 'guide' : 'stats'
+  return ['stats', 'guide', 'practice'].includes(value) ? value : DEFAULT_SETTINGS.tab
 }
 
 function sanitizeGuideFilter(value) {
   return ['all', 'letter', 'word'].includes(value) ? value : 'all'
+}
+
+function sanitizePracticeLevel(value) {
+  return PRACTICE_LEVELS.includes(value) ? value : DEFAULT_SETTINGS.practiceLevel
 }
 
 function buildPracticeGoals({ wordCount, recognizedTotal, historyLength, stability }) {
@@ -176,6 +184,7 @@ export default function App() {
   const [speechRate, setSpeechRate] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechRate, DEFAULT_SETTINGS.speechRate), 0.6, 1.4))
   const [speechPitch, setSpeechPitch] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechPitch, DEFAULT_SETTINGS.speechPitch), 0.5, 1.5))
   const [guideFilter, setGuideFilter] = useState(() => sanitizeGuideFilter(readStoredValue(STORAGE_KEYS.guideFilter, DEFAULT_SETTINGS.guideFilter)))
+  const [practiceLevel, setPracticeLevel] = useState(() => sanitizePracticeLevel(readStoredValue(STORAGE_KEYS.practiceLevel, DEFAULT_SETTINGS.practiceLevel)))
 
   const [copied, setCopied] = useState(false)
   const [historyExported, setHistoryExported] = useState(false)
@@ -190,6 +199,7 @@ export default function App() {
     setSpeechRate(DEFAULT_SETTINGS.speechRate)
     setSpeechPitch(DEFAULT_SETTINGS.speechPitch)
     setGuideFilter(DEFAULT_SETTINGS.guideFilter)
+    setPracticeLevel(DEFAULT_SETTINGS.practiceLevel)
     setShowSettings(false)
   }
 
@@ -213,6 +223,10 @@ export default function App() {
     writeStoredValue(STORAGE_KEYS.guideFilter, guideFilter)
   }, [guideFilter])
 
+  useEffect(() => {
+    writeStoredValue(STORAGE_KEYS.practiceLevel, practiceLevel)
+  }, [practiceLevel])
+
   // Auto-TTS per word
   useEffect(() => {
     if (tts && currentSign && currentSign.sign !== prevSign.current) {
@@ -231,6 +245,7 @@ export default function App() {
       if (key === 'c') clearSentence()
       if (key === 'h') clearHistory()
       if (key === 's') setShowSettings((v) => !v)
+      if (key === 'p') setTab('practice')
     }
 
     window.addEventListener('keydown', onKey)
@@ -255,6 +270,11 @@ export default function App() {
     if (guideFilter === 'all') return SIGN_REFERENCE
     return SIGN_REFERENCE.filter((s) => s.category === guideFilter)
   }, [guideFilter])
+
+  const filteredPractice = useMemo(() => {
+    if (practiceLevel === 'All') return PRACTICE_LIBRARY
+    return PRACTICE_LIBRARY.filter((lesson) => lesson.level === practiceLevel)
+  }, [practiceLevel])
 
   const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
   const avgWordsPerSentence = history.length === 0 ? 0 : (recognizedTotal / history.length)
@@ -433,7 +453,7 @@ export default function App() {
 
             <div className={styles.quickHelp}>
               <span>Tip: Hold signs steady for consistent stability.</span>
-              <span>Current mode: {tab === 'stats' ? 'Live stats' : 'Sign guide'}</span>
+              <span>Current mode: {tab === 'stats' ? 'Live stats' : tab === 'guide' ? 'Sign guide' : 'Practice library'}</span>
             </div>
 
             {showSettings && (
@@ -477,6 +497,9 @@ export default function App() {
             </button>
             <button className={`${styles.tab} ${tab === 'guide' ? styles.tabAct : ''}`} onClick={() => setTab('guide')}>
               Sign guide
+            </button>
+            <button className={`${styles.tab} ${tab === 'practice' ? styles.tabAct : ''}`} onClick={() => setTab('practice')}>
+              Practice
             </button>
           </div>
 
@@ -563,7 +586,7 @@ export default function App() {
                 <li>Shortcuts: T toggle TTS · C clear sentence · H clear history · S settings</li>
               </ul>
             </div>
-          ) : (
+          ) : tab === 'guide' ? (
             <div className={styles.panel}>
               <div className={styles.panelTopRow}>
                 <div className={styles.panelLabel}>{filteredSigns.length} supported signs</div>
@@ -580,6 +603,53 @@ export default function App() {
                     <span className={styles.guideSign}>{sign}</span>
                     <span className={styles.guideDesc}>{desc}</span>
                   </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.panel}>
+              <div className={styles.panelTopRow}>
+                <div className={styles.panelLabel}>{filteredPractice.length} practice lessons</div>
+                <div className={styles.filterButtons}>
+                  {PRACTICE_LEVELS.map((level) => (
+                    <button
+                      key={level}
+                      className={`${styles.btn} ${practiceLevel === level ? styles.btnAccent2 : ''}`}
+                      onClick={() => setPracticeLevel(level)}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.practiceList}>
+                {filteredPractice.map((lesson) => (
+                  <article key={lesson.id} className={styles.practiceCard}>
+                    <div className={styles.practiceHead}>
+                      <div>
+                        <h3>{lesson.title}</h3>
+                        <p>{lesson.focus}</p>
+                      </div>
+                      <span className={styles.practiceLevel}>{lesson.level}</span>
+                    </div>
+                    <div className={styles.practiceMeta}>
+                      <span>{lesson.durationMin} min</span>
+                      <span>{lesson.signs.length} signs</span>
+                    </div>
+                    <div className={styles.practiceSigns}>
+                      {lesson.signs.map((sign) => (
+                        <span key={`${lesson.id}-${sign}`}>{sign}</span>
+                      ))}
+                    </div>
+                    <details className={styles.practiceDetails}>
+                      <summary>Drills and success criteria</summary>
+                      <ul>
+                        {lesson.drills.slice(0, 2).map((drill) => <li key={drill}>{drill}</li>)}
+                        {lesson.successCriteria.slice(0, 1).map((criterion) => <li key={criterion}>{criterion}</li>)}
+                      </ul>
+                    </details>
+                  </article>
                 ))}
               </div>
             </div>
