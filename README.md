@@ -55,6 +55,12 @@ npm run preview
 
 Serves the production build locally for a final smoke test.
 
+```bash
+npm test
+```
+
+Runs the Node.js test suite for classifier smoothing, preferences, and keyboard helpers.
+
 ## Local MediaPipe Assets
 
 The app serves MediaPipe files from `public/mediapipe/` so recognition can work without loading those runtime assets from a CDN after install. Keep these files in place when building or deploying the app.
@@ -118,6 +124,16 @@ npm install
 npm run build
 ```
 
+
+
+## History Export Format
+
+Session history exports include an `exportedAt` timestamp and a `records` array. Each history record includes:
+
+- `id` — stable unique id for rendering and export references.
+- `text` — recognized phrase text.
+- `time` — local time when the phrase was saved.
+
 ## Project Structure
 
 ```text
@@ -132,10 +148,11 @@ public/mediapipe/               Local MediaPipe runtime assets
 
 ## Current Testing
 
-The current validation command is:
+The current validation commands are:
 
 ```bash
+npm test
 npm run build
 ```
 
-A future contribution should add a test runner such as Vitest and unit tests for classifier helpers, preference sanitizers, and UI utilities.
+`npm test` currently uses Node's built-in test runner. Vitest is still a good future upgrade once registry access is available for installing new dev dependencies.

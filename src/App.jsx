@@ -2,6 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHandTracking } from './hooks/useHandTracking.js'
 import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_LIBRARY } from './data/achievementLibrary.js'
 import { PRACTICE_LIBRARY, PRACTICE_LEVELS } from './data/practiceLibrary.js'
+import { isEditableTarget } from './utils/keyboard.js'
+import {
+  DEFAULT_SETTINGS,
+  STORAGE_KEYS,
+  clamp,
+  readStoredValue,
+  sanitizeAchievementCategory,
+  sanitizeGuideFilter,
+  sanitizePracticeLevel,
+  sanitizeTab,
+  writeStoredValue,
+} from './utils/preferences.js'
 import styles from './App.module.css'
 
 const SIGN_REFERENCE = [
@@ -48,70 +60,12 @@ const SHORTCUTS = [
   { key: 'A', action: 'Open achievements' },
 ]
 
-const STORAGE_KEYS = {
-  ttsEnabled: 'signspeak.ttsEnabled',
-  tab: 'signspeak.tab',
-  speechRate: 'signspeak.speechRate',
-  speechPitch: 'signspeak.speechPitch',
-  guideFilter: 'signspeak.guideFilter',
-  practiceLevel: 'signspeak.practiceLevel',
-  achievementCategory: 'signspeak.achievementCategory',
-}
-
-const DEFAULT_SETTINGS = {
-  tts: true,
-  tab: 'stats',
-  speechRate: 0.92,
-  speechPitch: 1,
-  guideFilter: 'all',
-  practiceLevel: 'All',
-  achievementCategory: 'All',
-}
-
 const PRACTICE_GOALS = [
   { key: 'sentence', label: 'Build sentence', target: 5, suffix: 'words' },
   { key: 'sessionWords', label: 'Session words', target: 25, suffix: 'words' },
   { key: 'history', label: 'Saved phrases', target: 3, suffix: 'saved' },
   { key: 'stability', label: 'Stable sign', target: 80, suffix: '%' },
 ]
-
-function readStoredValue(key, fallback) {
-  try {
-    const value = localStorage.getItem(key)
-    if (value == null) return fallback
-    return JSON.parse(value)
-  } catch {
-    return fallback
-  }
-}
-
-function writeStoredValue(key, value) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value))
-  } catch {
-    // no-op when storage is unavailable
-  }
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function sanitizeTab(value) {
-  return ['stats', 'guide', 'practice', 'achievements'].includes(value) ? value : DEFAULT_SETTINGS.tab
-}
-
-function sanitizeGuideFilter(value) {
-  return ['all', 'letter', 'word'].includes(value) ? value : 'all'
-}
-
-function sanitizePracticeLevel(value) {
-  return PRACTICE_LEVELS.includes(value) ? value : DEFAULT_SETTINGS.practiceLevel
-}
-
-function sanitizeAchievementCategory(value) {
-  return ACHIEVEMENT_CATEGORIES.includes(value) ? value : DEFAULT_SETTINGS.achievementCategory
-}
 
 function buildPracticeGoals({ wordCount, recognizedTotal, historyLength, stability }) {
   const values = {
@@ -253,7 +207,7 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.repeat) return
+      if (e.repeat || isEditableTarget(e.target)) return
       const key = e.key.toLowerCase()
       if (key === 't') setTts((v) => !v)
       if (key === 'c') clearSentence()
@@ -746,8 +700,8 @@ export default function App() {
           </div>
 
           <div className={styles.histList}>
-            {history.map((h, i) => (
-              <div key={`${h.time}-${i}`} className={styles.histItem}>
+            {history.map((h) => (
+              <div key={h.id} className={styles.histItem}>
                 <span className={styles.histText}>{h.text}</span>
                 <div className={styles.histMeta}>
                   <span className={styles.histTime}>{h.time}</span>

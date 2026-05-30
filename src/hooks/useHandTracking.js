@@ -22,6 +22,11 @@ const CONNECTIONS = [
 ]
 
 /** Inject a <script> tag and resolve when it loads */
+function createHistoryEntry(text) {
+  const id = globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  return { id, text, time: new Date().toLocaleTimeString() }
+}
+
 function loadScript(src) {
   return new Promise((resolve, reject) => {
     if (document.querySelector(`script[src="${src}"]`)) { resolve(); return }
@@ -80,7 +85,7 @@ export function useHandTracking() {
         setSentence(cur => {
           if (cur.length > 0)
             setHistory(h => [
-              { text: cur.join(' '), time: new Date().toLocaleTimeString() },
+              createHistoryEntry(cur.join(' ')),
               ...h,
             ].slice(0, 30))
           return []

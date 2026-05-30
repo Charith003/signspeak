@@ -53,6 +53,7 @@ Open the Vite dev server URL and allow browser camera permission.
 Before opening a pull request, run:
 
 ```bash
+npm test
 npm run build
 ```
 
@@ -62,6 +63,7 @@ For UI changes, also perform a manual smoke test:
 - Camera permission flow still works.
 - Live status text updates.
 - TTS buttons still work if the browser supports speech synthesis.
+- Keyboard shortcuts do not fire while typing in inputs or editable fields.
 - Practice, Awards, Guide, and Stats tabs render correctly.
 
 ## Pull Request Checklist
