@@ -58,6 +58,7 @@ const SHORTCUTS = [
   { key: 'S', action: 'Toggle settings' },
   { key: 'P', action: 'Open practice' },
   { key: 'A', action: 'Open achievements' },
+  { key: '?', action: 'Show shortcut help' },
 ]
 
 const PRACTICE_GOALS = [
@@ -88,6 +89,50 @@ function buildPracticeGoals({ wordCount, recognizedTotal, historyLength, stabili
   })
 }
 
+
+function normalizeQuery(value) {
+  return value.trim().toLowerCase()
+}
+
+function includesQuery(values, query) {
+  if (!query) return true
+  return values.some((value) => String(value).toLowerCase().includes(query))
+}
+
+function matchesPracticeLesson(lesson, query) {
+  return includesQuery([
+    lesson.title,
+    lesson.focus,
+    lesson.level,
+    ...lesson.signs,
+    ...lesson.goals,
+    ...lesson.drills,
+  ], query)
+}
+
+function matchesAchievement(achievement, query) {
+  return includesQuery([
+    achievement.title,
+    achievement.description,
+    achievement.category,
+    achievement.tier,
+    achievement.points,
+    achievement.target,
+    ...achievement.unlockTips,
+    ...achievement.progressHints,
+  ], query)
+}
+
+function EmptyState({ title, body, action }) {
+  return (
+    <div className={styles.emptyState}>
+      <strong>{title}</strong>
+      <span>{body}</span>
+      {action}
+    </div>
+  )
+}
+
 function speakText(text, rate, pitch) {
   if (!text || !window.speechSynthesis) return
   window.speechSynthesis.cancel()
@@ -97,10 +142,33 @@ function speakText(text, rate, pitch) {
   window.speechSynthesis.speak(utterance)
 }
 
-function copyText(text) {
-  if (!text || !navigator.clipboard) return false
-  navigator.clipboard.writeText(text).catch(() => {})
-  return true
+async function copyText(text) {
+  if (!text) return false
+
+  if (navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(text)
+      return true
+    } catch {
+      // fall through to textarea fallback
+    }
+  }
+
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.select()
+
+  try {
+    return document.execCommand('copy')
+  } catch {
+    return false
+  } finally {
+    textarea.remove()
+  }
 }
 
 function exportHistory(history) {
@@ -149,9 +217,12 @@ export default function App() {
   const [practiceLevel, setPracticeLevel] = useState(() => sanitizePracticeLevel(readStoredValue(STORAGE_KEYS.practiceLevel, DEFAULT_SETTINGS.practiceLevel)))
   const [achievementCategory, setAchievementCategory] = useState(() => sanitizeAchievementCategory(readStoredValue(STORAGE_KEYS.achievementCategory, DEFAULT_SETTINGS.achievementCategory)))
 
-  const [copied, setCopied] = useState(false)
+  const [copyStatus, setCopyStatus] = useState('idle')
   const [historyExported, setHistoryExported] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const [practiceSearch, setPracticeSearch] = useState('')
+  const [achievementSearch, setAchievementSearch] = useState('')
   const [sessionStartedAt] = useState(() => Date.now())
   const [nowTs, setNowTs] = useState(() => Date.now())
   const prevSign = useRef('')
@@ -215,6 +286,8 @@ export default function App() {
       if (key === 's') setShowSettings((v) => !v)
       if (key === 'p') setTab('practice')
       if (key === 'a') setTab('achievements')
+      if (key === '?' || (key === '/' && e.shiftKey)) setShowShortcuts(true)
+      if (key === 'escape') setShowShortcuts(false)
     }
 
     window.addEventListener('keydown', onKey)
@@ -241,14 +314,16 @@ export default function App() {
   }, [guideFilter])
 
   const filteredPractice = useMemo(() => {
-    if (practiceLevel === 'All') return PRACTICE_LIBRARY
-    return PRACTICE_LIBRARY.filter((lesson) => lesson.level === practiceLevel)
-  }, [practiceLevel])
+    const query = normalizeQuery(practiceSearch)
+    return PRACTICE_LIBRARY.filter((lesson) => (practiceLevel === 'All' || lesson.level === practiceLevel)
+      && matchesPracticeLesson(lesson, query))
+  }, [practiceLevel, practiceSearch])
 
   const filteredAchievements = useMemo(() => {
-    if (achievementCategory === 'All') return ACHIEVEMENT_LIBRARY
-    return ACHIEVEMENT_LIBRARY.filter((achievement) => achievement.category === achievementCategory)
-  }, [achievementCategory])
+    const query = normalizeQuery(achievementSearch)
+    return ACHIEVEMENT_LIBRARY.filter((achievement) => (achievementCategory === 'All' || achievement.category === achievementCategory)
+      && matchesAchievement(achievement, query))
+  }, [achievementCategory, achievementSearch])
 
   const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
   const avgWordsPerSentence = history.length === 0 ? 0 : (recognizedTotal / history.length)
@@ -263,7 +338,7 @@ export default function App() {
   })
 
   useEffect(() => {
-    if (sentence.length === 0) setCopied(false)
+    if (sentence.length === 0) setCopyStatus('idle')
   }, [sentence.length])
 
   useEffect(() => {
@@ -408,16 +483,14 @@ export default function App() {
 
               <button
                 className={styles.btn}
-                onClick={() => {
-                  const ok = copyText(sentence.join(' '))
-                  if (ok) {
-                    setCopied(true)
-                    setTimeout(() => setCopied(false), 1200)
-                  }
+                onClick={async () => {
+                  const ok = await copyText(sentence.join(' '))
+                  setCopyStatus(ok ? 'copied' : 'failed')
+                  setTimeout(() => setCopyStatus('idle'), 1400)
                 }}
                 disabled={sentence.length === 0}
               >
-                {copied ? 'Copied!' : 'Copy'}
+                {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'failed' ? 'Copy failed' : 'Copy'}
               </button>
 
               <button className={styles.btn} onClick={() => setShowSettings((v) => !v)}>
@@ -465,23 +538,23 @@ export default function App() {
         </div>
 
         <aside className={styles.sidebar}>
-          <div className={styles.tabs}>
-            <button className={`${styles.tab} ${tab === 'stats' ? styles.tabAct : ''}`} onClick={() => setTab('stats')}>
+          <div className={styles.tabs} role="tablist" aria-label="Sidebar panels">
+            <button id="tab-stats" role="tab" aria-selected={tab === 'stats'} aria-controls="panel-stats" className={`${styles.tab} ${tab === 'stats' ? styles.tabAct : ''}`} onClick={() => setTab('stats')}>
               Live stats
             </button>
-            <button className={`${styles.tab} ${tab === 'guide' ? styles.tabAct : ''}`} onClick={() => setTab('guide')}>
+            <button id="tab-guide" role="tab" aria-selected={tab === 'guide'} aria-controls="panel-guide" className={`${styles.tab} ${tab === 'guide' ? styles.tabAct : ''}`} onClick={() => setTab('guide')}>
               Sign guide
             </button>
-            <button className={`${styles.tab} ${tab === 'practice' ? styles.tabAct : ''}`} onClick={() => setTab('practice')}>
+            <button id="tab-practice" role="tab" aria-selected={tab === 'practice'} aria-controls="panel-practice" className={`${styles.tab} ${tab === 'practice' ? styles.tabAct : ''}`} onClick={() => setTab('practice')}>
               Practice
             </button>
-            <button className={`${styles.tab} ${tab === 'achievements' ? styles.tabAct : ''}`} onClick={() => setTab('achievements')}>
+            <button id="tab-achievements" role="tab" aria-selected={tab === 'achievements'} aria-controls="panel-achievements" className={`${styles.tab} ${tab === 'achievements' ? styles.tabAct : ''}`} onClick={() => setTab('achievements')}>
               Awards
             </button>
           </div>
 
           {tab === 'stats' ? (
-            <div className={styles.panel}>
+            <div id="panel-stats" role="tabpanel" aria-labelledby="tab-stats" className={styles.panel}>
               <div className={styles.panelLabel}>Recognition</div>
               <div className={styles.statusRibbon}>
                 <span className={styles.statusBadge}>{activeLabel}</span>
@@ -564,7 +637,7 @@ export default function App() {
               </ul>
             </div>
           ) : tab === 'guide' ? (
-            <div className={styles.panel}>
+            <div id="panel-guide" role="tabpanel" aria-labelledby="tab-guide" className={styles.panel}>
               <div className={styles.panelTopRow}>
                 <div className={styles.panelLabel}>{filteredSigns.length} supported signs</div>
                 <div className={styles.filterButtons}>
@@ -575,7 +648,13 @@ export default function App() {
               </div>
 
               <div className={styles.guideGrid}>
-                {filteredSigns.map(({ sign, desc }) => (
+                {filteredSigns.length === 0 ? (
+                  <EmptyState
+                    title="No signs in this filter"
+                    body="Try switching back to All signs."
+                    action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setGuideFilter('all')}>Show all signs</button>}
+                  />
+                ) : filteredSigns.map(({ sign, desc }) => (
                   <div key={sign} className={styles.guideCard} style={{ borderColor: currentSign?.sign === sign ? 'var(--acc)' : 'transparent' }}>
                     <span className={styles.guideSign}>{sign}</span>
                     <span className={styles.guideDesc}>{desc}</span>
@@ -584,7 +663,7 @@ export default function App() {
               </div>
             </div>
           ) : tab === 'practice' ? (
-            <div className={styles.panel}>
+            <div id="panel-practice" role="tabpanel" aria-labelledby="tab-practice" className={styles.panel}>
               <div className={styles.panelTopRow}>
                 <div className={styles.panelLabel}>{filteredPractice.length} practice lessons</div>
                 <div className={styles.filterButtons}>
@@ -600,8 +679,27 @@ export default function App() {
                 </div>
               </div>
 
+              <div className={styles.searchRow}>
+                <label className={styles.srOnly} htmlFor="practice-search">Search practice lessons</label>
+                <input
+                  id="practice-search"
+                  className={styles.searchInput}
+                  type="search"
+                  placeholder="Search lessons, signs, or drills…"
+                  value={practiceSearch}
+                  onChange={(e) => setPracticeSearch(e.target.value)}
+                />
+                {practiceSearch && <button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setPracticeSearch('')}>Reset</button>}
+              </div>
+
               <div className={styles.practiceList}>
-                {filteredPractice.map((lesson) => (
+                {filteredPractice.length === 0 ? (
+                  <EmptyState
+                    title="No practice lessons found"
+                    body="Try a different search term or level filter."
+                    action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => { setPracticeSearch(''); setPracticeLevel('All') }}>Reset practice filters</button>}
+                  />
+                ) : filteredPractice.map((lesson) => (
                   <article key={lesson.id} className={styles.practiceCard}>
                     <div className={styles.practiceHead}>
                       <div>
@@ -631,7 +729,7 @@ export default function App() {
               </div>
             </div>
           ) : (
-            <div className={styles.panel}>
+            <div id="panel-achievements" role="tabpanel" aria-labelledby="tab-achievements" className={styles.panel}>
               <div className={styles.panelTopRow}>
                 <div className={styles.panelLabel}>{filteredAchievements.length} achievements</div>
                 <div className={styles.filterButtons}>
@@ -647,8 +745,29 @@ export default function App() {
                 </div>
               </div>
 
+              <div className={styles.searchRow}>
+                <label className={styles.srOnly} htmlFor="achievement-search">Search achievements</label>
+                <input
+                  id="achievement-search"
+                  className={styles.searchInput}
+                  type="search"
+                  placeholder="Search awards, tiers, or tips…"
+                  value={achievementSearch}
+                  onChange={(e) => setAchievementSearch(e.target.value)}
+                />
+                {(achievementSearch || achievementCategory !== 'All') && (
+                  <button className={`${styles.btn} ${styles.btnSm}`} onClick={() => { setAchievementSearch(''); setAchievementCategory('All') }}>Reset</button>
+                )}
+              </div>
+
               <div className={styles.achievementList}>
-                {filteredAchievements.map((achievement) => (
+                {filteredAchievements.length === 0 ? (
+                  <EmptyState
+                    title="No awards found"
+                    body="Try a different search term or achievement category."
+                    action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => { setAchievementSearch(''); setAchievementCategory('All') }}>Reset award filters</button>}
+                  />
+                ) : filteredAchievements.map((achievement) => (
                   <article key={achievement.id} className={styles.achievementCard}>
                     <div className={styles.achievementHead}>
                       <div>
@@ -715,10 +834,30 @@ export default function App() {
         </div>
       )}
 
+      {showShortcuts && (
+        <div className={styles.shortcutOverlay} role="presentation" onClick={() => setShowShortcuts(false)}>
+          <div className={styles.shortcutDialog} role="dialog" aria-modal="true" aria-labelledby="shortcut-title" onClick={(e) => e.stopPropagation()}>
+            <div className={styles.shortcutDialogHead}>
+              <h2 id="shortcut-title">Keyboard shortcuts</h2>
+              <button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setShowShortcuts(false)}>Close</button>
+            </div>
+            <dl className={styles.shortcutList}>
+              {SHORTCUTS.map((shortcut) => (
+                <div key={shortcut.key}>
+                  <dt>{shortcut.key}</dt>
+                  <dd>{shortcut.action}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </div>
+      )}
+
       <footer className={styles.footer}>
         <span>MediaPipe Hands (local) · Geometry classifier · Web Speech API</span>
         <span>100% offline after install · No model files</span>
         <span className={styles.shortcutHint}>Shortcuts: {SHORTCUTS.map((s) => `[${s.key}] ${s.action}`).join(' · ')}</span>
+        <button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setShowShortcuts(true)}>Shortcut help</button>
       </footer>
     </div>
   )

@@ -80,6 +80,7 @@ Important folders:
 | `S` | Toggle settings |
 | `P` | Open Practice tab |
 | `A` | Open Awards tab |
+| `?` | Open shortcut help |
 
 ## Development Workflow
 
@@ -113,6 +114,13 @@ git commit -m "docs: add quickstart guide"
 - Use a bright, plain background.
 - Hold each sign steady for about one second.
 - Avoid fast transitions while the app stabilizes recognition.
+
+
+### Clipboard copy does not work
+
+- The app first uses the browser Clipboard API, then falls back to a hidden textarea copy action.
+- Some browsers only allow clipboard writes after a direct user click.
+- If copying still fails, use the visible sentence text and copy it manually.
 
 ### Build fails after moving between operating systems
 
