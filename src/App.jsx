@@ -4,6 +4,12 @@ import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_LIBRARY } from './data/achievementL
 import { PRACTICE_LIBRARY, PRACTICE_LEVELS } from './data/practiceLibrary.js'
 import { isEditableTarget } from './utils/keyboard.js'
 import {
+  asStringArray,
+  getAchievementProgress,
+  getLessonProgress,
+  toggleStringId,
+} from './utils/learning.js'
+import {
   DEFAULT_SETTINGS,
   STORAGE_KEYS,
   clamp,
@@ -216,6 +222,8 @@ export default function App() {
   const [guideFilter, setGuideFilter] = useState(() => sanitizeGuideFilter(readStoredValue(STORAGE_KEYS.guideFilter, DEFAULT_SETTINGS.guideFilter)))
   const [practiceLevel, setPracticeLevel] = useState(() => sanitizePracticeLevel(readStoredValue(STORAGE_KEYS.practiceLevel, DEFAULT_SETTINGS.practiceLevel)))
   const [achievementCategory, setAchievementCategory] = useState(() => sanitizeAchievementCategory(readStoredValue(STORAGE_KEYS.achievementCategory, DEFAULT_SETTINGS.achievementCategory)))
+  const [favoriteLessonIds, setFavoriteLessonIds] = useState(() => asStringArray(readStoredValue(STORAGE_KEYS.favoriteLessons, DEFAULT_SETTINGS.favoriteLessons)))
+  const [completedLessonIds, setCompletedLessonIds] = useState(() => asStringArray(readStoredValue(STORAGE_KEYS.completedLessons, DEFAULT_SETTINGS.completedLessons)))
 
   const [copyStatus, setCopyStatus] = useState('idle')
   const [historyExported, setHistoryExported] = useState(false)
@@ -223,6 +231,8 @@ export default function App() {
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [practiceSearch, setPracticeSearch] = useState('')
   const [achievementSearch, setAchievementSearch] = useState('')
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
+  const [activeLessonId, setActiveLessonId] = useState(null)
   const [sessionStartedAt] = useState(() => Date.now())
   const [nowTs, setNowTs] = useState(() => Date.now())
   const prevSign = useRef('')
@@ -235,6 +245,8 @@ export default function App() {
     setGuideFilter(DEFAULT_SETTINGS.guideFilter)
     setPracticeLevel(DEFAULT_SETTINGS.practiceLevel)
     setAchievementCategory(DEFAULT_SETTINGS.achievementCategory)
+    setShowFavoritesOnly(false)
+    setActiveLessonId(null)
     setShowSettings(false)
   }
 
@@ -265,6 +277,14 @@ export default function App() {
   useEffect(() => {
     writeStoredValue(STORAGE_KEYS.achievementCategory, achievementCategory)
   }, [achievementCategory])
+
+  useEffect(() => {
+    writeStoredValue(STORAGE_KEYS.favoriteLessons, favoriteLessonIds)
+  }, [favoriteLessonIds])
+
+  useEffect(() => {
+    writeStoredValue(STORAGE_KEYS.completedLessons, completedLessonIds)
+  }, [completedLessonIds])
 
   // Auto-TTS per word
   useEffect(() => {
@@ -316,8 +336,9 @@ export default function App() {
   const filteredPractice = useMemo(() => {
     const query = normalizeQuery(practiceSearch)
     return PRACTICE_LIBRARY.filter((lesson) => (practiceLevel === 'All' || lesson.level === practiceLevel)
+      && (!showFavoritesOnly || favoriteLessonIds.includes(lesson.id))
       && matchesPracticeLesson(lesson, query))
-  }, [practiceLevel, practiceSearch])
+  }, [favoriteLessonIds, practiceLevel, practiceSearch, showFavoritesOnly])
 
   const filteredAchievements = useMemo(() => {
     const query = normalizeQuery(achievementSearch)
@@ -330,12 +351,33 @@ export default function App() {
   const activeLabel = STATUS_LABELS[status] || 'Unknown'
   const elapsedMin = Math.max(1, Math.round((nowTs - sessionStartedAt) / 60000))
   const currentStability = currentSign?.stability || 0
+  const activeLesson = PRACTICE_LIBRARY.find((lesson) => lesson.id === activeLessonId) || null
+  const activeLessonProgress = getLessonProgress(activeLesson, sentence)
   const practiceGoals = buildPracticeGoals({
     wordCount,
     recognizedTotal,
     historyLength: history.length,
     stability: currentStability,
   })
+  const achievementMetrics = {
+    completedLessons: completedLessonIds.length,
+    currentStability,
+    elapsedMin,
+    favoriteLessons: favoriteLessonIds.length,
+    historyLength: history.length,
+    recognizedTotal,
+    wordCount,
+  }
+  const achievementProgress = useMemo(() => Object.fromEntries(ACHIEVEMENT_LIBRARY.map((achievement) => [
+    achievement.id,
+    getAchievementProgress(achievement, achievementMetrics),
+  ])), [completedLessonIds.length, currentStability, elapsedMin, favoriteLessonIds.length, history.length, recognizedTotal, wordCount])
+  const unlockedAchievements = ACHIEVEMENT_LIBRARY.filter((achievement) => achievementProgress[achievement.id]?.complete)
+  const totalAwardPoints = unlockedAchievements.reduce((sum, achievement) => sum + achievement.points, 0)
+  const tierSummary = unlockedAchievements.reduce((summary, achievement) => ({
+    ...summary,
+    [achievement.tier]: (summary[achievement.tier] || 0) + 1,
+  }), {})
 
   useEffect(() => {
     if (sentence.length === 0) setCopyStatus('idle')
@@ -349,6 +391,12 @@ export default function App() {
     const id = setInterval(() => setNowTs(Date.now()), 30000)
     return () => clearInterval(id)
   }, [])
+
+  useEffect(() => {
+    if (activeLesson && activeLessonProgress.complete && !completedLessonIds.includes(activeLesson.id)) {
+      setCompletedLessonIds((ids) => [...ids, activeLesson.id])
+    }
+  }, [activeLesson, activeLessonProgress.complete, completedLessonIds])
 
   return (
     <div className={styles.app}>
@@ -679,6 +727,25 @@ export default function App() {
                 </div>
               </div>
 
+              <div className={styles.practiceToolbar}>
+                <button className={`${styles.btn} ${showFavoritesOnly ? styles.btnAccent2 : ''}`} onClick={() => setShowFavoritesOnly((value) => !value)}>
+                  Favorites {favoriteLessonIds.length > 0 ? `(${favoriteLessonIds.length})` : ''}
+                </button>
+                <span>{completedLessonIds.length} completed</span>
+              </div>
+
+              {activeLesson && (
+                <div className={styles.activeLesson}>
+                  <div>
+                    <strong>Active: {activeLesson.title}</strong>
+                    <span>{activeLessonProgress.complete ? 'Lesson complete — great work!' : `Next sign: ${activeLessonProgress.nextSign || 'finish'}`}</span>
+                  </div>
+                  <div className={styles.goalTrack}>
+                    <div className={styles.goalFill} style={{ width: `${activeLessonProgress.percent}%` }} />
+                  </div>
+                </div>
+              )}
+
               <div className={styles.searchRow}>
                 <label className={styles.srOnly} htmlFor="practice-search">Search practice lessons</label>
                 <input
@@ -700,13 +767,17 @@ export default function App() {
                     action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => { setPracticeSearch(''); setPracticeLevel('All') }}>Reset practice filters</button>}
                   />
                 ) : filteredPractice.map((lesson) => (
-                  <article key={lesson.id} className={styles.practiceCard}>
+                  <article key={lesson.id} className={`${styles.practiceCard} ${activeLessonId === lesson.id ? styles.practiceActive : ''} ${completedLessonIds.includes(lesson.id) ? styles.practiceComplete : ''}`}> 
                     <div className={styles.practiceHead}>
                       <div>
                         <h3>{lesson.title}</h3>
                         <p>{lesson.focus}</p>
                       </div>
-                      <span className={styles.practiceLevel}>{lesson.level}</span>
+                      <div className={styles.lessonActions}>
+                        <span className={styles.practiceLevel}>{lesson.level}</span>
+                        <button className={`${styles.iconBtn} ${favoriteLessonIds.includes(lesson.id) ? styles.iconBtnActive : ''}`} aria-label={favoriteLessonIds.includes(lesson.id) ? 'Remove favorite lesson' : 'Favorite lesson'} onClick={() => setFavoriteLessonIds((ids) => toggleStringId(ids, lesson.id))}>★</button>
+                        <button className={`${styles.iconBtn} ${completedLessonIds.includes(lesson.id) ? styles.iconBtnActive : ''}`} aria-label={completedLessonIds.includes(lesson.id) ? 'Mark lesson incomplete' : 'Mark lesson complete'} onClick={() => setCompletedLessonIds((ids) => toggleStringId(ids, lesson.id))}>✓</button>
+                      </div>
                     </div>
                     <div className={styles.practiceMeta}>
                       <span>{lesson.durationMin} min</span>
@@ -714,16 +785,33 @@ export default function App() {
                     </div>
                     <div className={styles.practiceSigns}>
                       {lesson.signs.map((sign) => (
-                        <span key={`${lesson.id}-${sign}`}>{sign}</span>
+                        <span key={`${lesson.id}-${sign}`} className={activeLessonId === lesson.id && activeLessonProgress.matched.includes(sign) ? styles.signMatched : ''}>{sign}</span>
                       ))}
                     </div>
                     <details className={styles.practiceDetails}>
-                      <summary>Drills and success criteria</summary>
-                      <ul>
-                        {lesson.drills.slice(0, 2).map((drill) => <li key={drill}>{drill}</li>)}
-                        {lesson.successCriteria.slice(0, 1).map((criterion) => <li key={criterion}>{criterion}</li>)}
-                      </ul>
+                      <summary>Lesson details</summary>
+                      <div className={styles.lessonDetailGrid}>
+                        <section>
+                          <h4>Goals</h4>
+                          <ul>{lesson.goals.map((goal) => <li key={goal}>{goal}</li>)}</ul>
+                        </section>
+                        <section>
+                          <h4>Drills</h4>
+                          <ul>{lesson.drills.map((drill) => <li key={drill}>{drill}</li>)}</ul>
+                        </section>
+                        <section>
+                          <h4>Success</h4>
+                          <ul>{lesson.successCriteria.map((criterion) => <li key={criterion}>{criterion}</li>)}</ul>
+                        </section>
+                        <section>
+                          <h4>Tips</h4>
+                          <ul>{lesson.coachingTips.map((tip) => <li key={tip}>{tip}</li>)}</ul>
+                        </section>
+                      </div>
                     </details>
+                    <button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setActiveLessonId(lesson.id)}>
+                      {activeLessonId === lesson.id ? 'Restart active lesson' : 'Start practice'}
+                    </button>
                   </article>
                 ))}
               </div>
@@ -743,6 +831,12 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className={styles.awardsSummary}>
+                <span><strong>{unlockedAchievements.length}</strong> unlocked</span>
+                <span><strong>{totalAwardPoints}</strong> points</span>
+                <span>{Object.entries(tierSummary).map(([tier, count]) => `${tier}: ${count}`).join(' · ') || 'No tiers unlocked yet'}</span>
               </div>
 
               <div className={styles.searchRow}>
@@ -768,7 +862,7 @@ export default function App() {
                     action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => { setAchievementSearch(''); setAchievementCategory('All') }}>Reset award filters</button>}
                   />
                 ) : filteredAchievements.map((achievement) => (
-                  <article key={achievement.id} className={styles.achievementCard}>
+                  <article key={achievement.id} className={`${styles.achievementCard} ${achievementProgress[achievement.id]?.complete ? styles.achievementUnlocked : ''}`}> 
                     <div className={styles.achievementHead}>
                       <div>
                         <h3>{achievement.title}</h3>
@@ -779,7 +873,10 @@ export default function App() {
                     <div className={styles.achievementMeta}>
                       <span>{achievement.category}</span>
                       <span>{achievement.points} pts</span>
-                      <span>Target {achievement.target}</span>
+                      <span>Target {achievementProgress[achievement.id]?.value || 0} / {achievement.target}</span>
+                    </div>
+                    <div className={styles.awardProgressTrack}>
+                      <div className={styles.awardProgressFill} style={{ width: `${achievementProgress[achievement.id]?.percent || 0}%` }} />
                     </div>
                     <details className={styles.achievementDetails}>
                       <summary>Unlock tips</summary>

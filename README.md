@@ -82,6 +82,14 @@ Important folders:
 | `A` | Open Awards tab |
 | `?` | Open shortcut help |
 
+
+## Learning Progress Features
+
+- Favorite practice lessons with the star button and use the Favorites filter to focus your next session.
+- Mark lessons complete manually or start a lesson and complete it by signing every target sign.
+- Active lessons show current progress, matched signs, and the next suggested sign.
+- Awards show progress bars, unlocked counts, total points, and tier summaries based on session activity.
+
 ## Development Workflow
 
 1. Create a focused branch.

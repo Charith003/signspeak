@@ -952,3 +952,124 @@
     align-self: flex-start;
   }
 }
+
+/* ── Week 3 learning features ─────────────────────────────────────────────── */
+.practiceToolbar,
+.awardsSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--t2);
+  font-size: .68rem;
+  flex-wrap: wrap;
+}
+
+.activeLesson {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid rgba(0,229,160,.22);
+  border-radius: var(--rs);
+  background: rgba(0,229,160,.06);
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.activeLesson strong {
+  display: block;
+  color: var(--acc);
+  font-family: var(--fh);
+  font-size: .82rem;
+}
+
+.activeLesson span {
+  color: var(--t2);
+  font-size: .68rem;
+}
+
+.practiceActive {
+  border-color: rgba(0,229,160,.45);
+  box-shadow: 0 0 0 1px rgba(0,229,160,.08);
+}
+
+.practiceComplete,
+.achievementUnlocked {
+  border-color: rgba(0,229,160,.35);
+  background: linear-gradient(180deg, rgba(0,229,160,.08), rgba(255,255,255,.02));
+}
+
+.lessonActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--b1);
+  border-radius: 999px;
+  background: var(--s1);
+  color: var(--t3);
+  display: inline-grid;
+  place-items: center;
+  font-size: .7rem;
+}
+
+.iconBtn:hover,
+.iconBtnActive {
+  color: var(--acc);
+  border-color: rgba(0,229,160,.3);
+  background: rgba(0,229,160,.08);
+}
+
+.signMatched {
+  border-color: rgba(0,229,160,.45) !important;
+  background: rgba(0,229,160,.14) !important;
+}
+
+.lessonDetailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.lessonDetailGrid h4 {
+  margin: 0 0 6px;
+  color: var(--t1);
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.awardProgressTrack {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--s1);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.awardProgressFill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--acc2), var(--acc));
+  transition: width .25s ease;
+}
+
+@media (max-width: 620px) {
+  .lessonActions,
+  .practiceToolbar,
+  .awardsSummary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .lessonDetailGrid {
+    grid-template-columns: 1fr;
+  }
+}

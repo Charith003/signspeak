@@ -7,7 +7,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/hooks/aslClassifier.test.js src/utils/preferences.test.js src/utils/keyboard.test.js"
+    "test": "node --test src/hooks/aslClassifier.test.js src/utils/preferences.test.js src/utils/keyboard.test.js src/utils/learning.test.js"
   },
   "dependencies": {
     "@mediapipe/hands": "0.4.1675469240",

@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   guideFilter: 'signspeak.guideFilter',
   practiceLevel: 'signspeak.practiceLevel',
   achievementCategory: 'signspeak.achievementCategory',
+  favoriteLessons: 'signspeak.favoriteLessons',
+  completedLessons: 'signspeak.completedLessons',
 }
 
 export const DEFAULT_SETTINGS = {
@@ -19,6 +21,8 @@ export const DEFAULT_SETTINGS = {
   guideFilter: 'all',
   practiceLevel: 'All',
   achievementCategory: 'All',
+  favoriteLessons: [],
+  completedLessons: [],
 }
 
 export function readStoredValue(key, fallback) {
