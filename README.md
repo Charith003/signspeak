@@ -1,5 +1,7 @@
 # SignSpeak ASL
 
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+
 SignSpeak ASL is a browser-based American Sign Language learning and recognition demo. It uses local MediaPipe Hands assets, a geometry-based ASL classifier, text-to-speech feedback, practice lessons, achievements, and session history tools to help users practice supported static signs.
 
 ## Features
@@ -162,11 +164,16 @@ src/data/achievementLibrary.js  Achievement data
 public/mediapipe/               Local MediaPipe runtime assets
 ```
 
+## Roadmap
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for good first issues, near-term improvements, and automation goals.
+
 ## Current Testing
 
 The current validation commands are:
 
 ```bash
+npm run lint
 npm test
 npm run build
 ```

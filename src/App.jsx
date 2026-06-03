@@ -346,38 +346,51 @@ export default function App() {
       && matchesAchievement(achievement, query))
   }, [achievementCategory, achievementSearch])
 
-  const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
-  const avgWordsPerSentence = history.length === 0 ? 0 : (recognizedTotal / history.length)
+  const historyMetrics = useMemo(() => {
+    const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
+    return {
+      recognizedTotal,
+      avgWordsPerSentence: history.length === 0 ? 0 : (recognizedTotal / history.length),
+      historyLength: history.length,
+    }
+  }, [history])
+  const { avgWordsPerSentence, historyLength, recognizedTotal } = historyMetrics
   const activeLabel = STATUS_LABELS[status] || 'Unknown'
   const elapsedMin = Math.max(1, Math.round((nowTs - sessionStartedAt) / 60000))
   const currentStability = currentSign?.stability || 0
-  const activeLesson = PRACTICE_LIBRARY.find((lesson) => lesson.id === activeLessonId) || null
-  const activeLessonProgress = getLessonProgress(activeLesson, sentence)
-  const practiceGoals = buildPracticeGoals({
+  const activeLesson = useMemo(() => PRACTICE_LIBRARY.find((lesson) => lesson.id === activeLessonId) || null, [activeLessonId])
+  const activeLessonProgress = useMemo(() => getLessonProgress(activeLesson, sentence), [activeLesson, sentence])
+  const practiceGoals = useMemo(() => buildPracticeGoals({
     wordCount,
     recognizedTotal,
-    historyLength: history.length,
+    historyLength,
     stability: currentStability,
-  })
-  const achievementMetrics = {
+  }), [currentStability, historyLength, recognizedTotal, wordCount])
+  const achievementMetrics = useMemo(() => ({
     completedLessons: completedLessonIds.length,
     currentStability,
     elapsedMin,
     favoriteLessons: favoriteLessonIds.length,
-    historyLength: history.length,
+    historyLength,
     recognizedTotal,
     wordCount,
-  }
+  }), [completedLessonIds.length, currentStability, elapsedMin, favoriteLessonIds.length, historyLength, recognizedTotal, wordCount])
   const achievementProgress = useMemo(() => Object.fromEntries(ACHIEVEMENT_LIBRARY.map((achievement) => [
     achievement.id,
     getAchievementProgress(achievement, achievementMetrics),
-  ])), [completedLessonIds.length, currentStability, elapsedMin, favoriteLessonIds.length, history.length, recognizedTotal, wordCount])
-  const unlockedAchievements = ACHIEVEMENT_LIBRARY.filter((achievement) => achievementProgress[achievement.id]?.complete)
-  const totalAwardPoints = unlockedAchievements.reduce((sum, achievement) => sum + achievement.points, 0)
-  const tierSummary = unlockedAchievements.reduce((summary, achievement) => ({
+  ])), [achievementMetrics])
+  const unlockedAchievements = useMemo(
+    () => ACHIEVEMENT_LIBRARY.filter((achievement) => achievementProgress[achievement.id]?.complete),
+    [achievementProgress],
+  )
+  const totalAwardPoints = useMemo(
+    () => unlockedAchievements.reduce((sum, achievement) => sum + achievement.points, 0),
+    [unlockedAchievements],
+  )
+  const tierSummary = useMemo(() => unlockedAchievements.reduce((summary, achievement) => ({
     ...summary,
     [achievement.tier]: (summary[achievement.tier] || 0) + 1,
-  }), {})
+  }), {}), [unlockedAchievements])
 
   useEffect(() => {
     if (sentence.length === 0) setCopyStatus('idle')
@@ -665,7 +678,7 @@ export default function App() {
 
               <div className={styles.statRow}>
                 <span className={styles.statKey}>History</span>
-                <span className={styles.statVal}>{history.length} entries · {recognizedTotal} words total</span>
+                <span className={styles.statVal}>{historyLength} entries · {recognizedTotal} words total</span>
               </div>
 
               <div className={styles.statRow}>
@@ -767,7 +780,7 @@ export default function App() {
                     action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => { setPracticeSearch(''); setPracticeLevel('All') }}>Reset practice filters</button>}
                   />
                 ) : filteredPractice.map((lesson) => (
-                  <article key={lesson.id} className={`${styles.practiceCard} ${activeLessonId === lesson.id ? styles.practiceActive : ''} ${completedLessonIds.includes(lesson.id) ? styles.practiceComplete : ''}`}> 
+                  <article key={lesson.id} className={`${styles.practiceCard} ${activeLessonId === lesson.id ? styles.practiceActive : ''} ${completedLessonIds.includes(lesson.id) ? styles.practiceComplete : ''}`}>
                     <div className={styles.practiceHead}>
                       <div>
                         <h3>{lesson.title}</h3>
@@ -862,7 +875,7 @@ export default function App() {
                     action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => { setAchievementSearch(''); setAchievementCategory('All') }}>Reset award filters</button>}
                   />
                 ) : filteredAchievements.map((achievement) => (
-                  <article key={achievement.id} className={`${styles.achievementCard} ${achievementProgress[achievement.id]?.complete ? styles.achievementUnlocked : ''}`}> 
+                  <article key={achievement.id} className={`${styles.achievementCard} ${achievementProgress[achievement.id]?.complete ? styles.achievementUnlocked : ''}`}>
                     <div className={styles.achievementHead}>
                       <div>
                         <h3>{achievement.title}</h3>

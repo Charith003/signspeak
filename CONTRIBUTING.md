@@ -53,6 +53,7 @@ Open the Vite dev server URL and allow browser camera permission.
 Before opening a pull request, run:
 
 ```bash
+npm run lint
 npm test
 npm run build
 ```
