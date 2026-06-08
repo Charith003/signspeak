@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHandTracking } from './hooks/useHandTracking.js'
 import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_LIBRARY } from './data/achievementLibrary.js'
 import { PRACTICE_LIBRARY, PRACTICE_LEVELS } from './data/practiceLibrary.js'
+import { COPY_STATUS, copyText, getCopyStatusLabel, resetCopyStatus } from './utils/clipboard.js'
 import { isEditableTarget } from './utils/keyboard.js'
 import {
   asStringArray,
@@ -148,35 +149,6 @@ function speakText(text, rate, pitch) {
   window.speechSynthesis.speak(utterance)
 }
 
-async function copyText(text) {
-  if (!text) return false
-
-  if (navigator.clipboard) {
-    try {
-      await navigator.clipboard.writeText(text)
-      return true
-    } catch {
-      // fall through to textarea fallback
-    }
-  }
-
-  const textarea = document.createElement('textarea')
-  textarea.value = text
-  textarea.setAttribute('readonly', '')
-  textarea.style.position = 'fixed'
-  textarea.style.opacity = '0'
-  document.body.appendChild(textarea)
-  textarea.select()
-
-  try {
-    return document.execCommand('copy')
-  } catch {
-    return false
-  } finally {
-    textarea.remove()
-  }
-}
-
 function exportHistory(history) {
   if (!history || history.length === 0) return false
   const payload = {
@@ -225,7 +197,7 @@ export default function App() {
   const [favoriteLessonIds, setFavoriteLessonIds] = useState(() => asStringArray(readStoredValue(STORAGE_KEYS.favoriteLessons, DEFAULT_SETTINGS.favoriteLessons)))
   const [completedLessonIds, setCompletedLessonIds] = useState(() => asStringArray(readStoredValue(STORAGE_KEYS.completedLessons, DEFAULT_SETTINGS.completedLessons)))
 
-  const [copyStatus, setCopyStatus] = useState('idle')
+  const [copyStatus, setCopyStatus] = useState(COPY_STATUS.idle)
   const [historyExported, setHistoryExported] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
@@ -236,6 +208,22 @@ export default function App() {
   const [sessionStartedAt] = useState(() => Date.now())
   const [nowTs, setNowTs] = useState(() => Date.now())
   const prevSign = useRef('')
+  const copyResetRef = useRef(null)
+
+  const showCopyStatus = (status) => {
+    if (copyResetRef.current) copyResetRef.current()
+    setCopyStatus(status)
+    copyResetRef.current = resetCopyStatus(setCopyStatus)
+  }
+
+  const handleCopySentence = async () => {
+    const ok = await copyText(sentence.join(' '))
+    showCopyStatus(ok ? COPY_STATUS.copied : COPY_STATUS.failed)
+  }
+
+  useEffect(() => () => {
+    if (copyResetRef.current) copyResetRef.current()
+  }, [])
 
   const resetPreferences = () => {
     setTts(DEFAULT_SETTINGS.tts)
@@ -393,7 +381,7 @@ export default function App() {
   }), {}), [unlockedAchievements])
 
   useEffect(() => {
-    if (sentence.length === 0) setCopyStatus('idle')
+    if (sentence.length === 0) setCopyStatus(COPY_STATUS.idle)
   }, [sentence.length])
 
   useEffect(() => {
@@ -544,15 +532,14 @@ export default function App() {
 
               <button
                 className={styles.btn}
-                onClick={async () => {
-                  const ok = await copyText(sentence.join(' '))
-                  setCopyStatus(ok ? 'copied' : 'failed')
-                  setTimeout(() => setCopyStatus('idle'), 1400)
-                }}
+                onClick={handleCopySentence}
                 disabled={sentence.length === 0}
               >
-                {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'failed' ? 'Copy failed' : 'Copy'}
+                {getCopyStatusLabel(copyStatus)}
               </button>
+              <span className={styles.copyStatus} role="status" aria-live="polite">
+                {copyStatus === COPY_STATUS.copied ? 'Sentence copied.' : copyStatus === COPY_STATUS.failed ? 'Copy failed. Select the sentence manually if needed.' : ''}
+              </span>
 
               <button className={styles.btn} onClick={() => setShowSettings((v) => !v)}>
                 {showSettings ? 'Hide settings' : 'Show settings'}
@@ -946,11 +933,12 @@ export default function App() {
 
       {showShortcuts && (
         <div className={styles.shortcutOverlay} role="presentation" onClick={() => setShowShortcuts(false)}>
-          <div className={styles.shortcutDialog} role="dialog" aria-modal="true" aria-labelledby="shortcut-title" onClick={(e) => e.stopPropagation()}>
+          <div className={styles.shortcutDialog} role="dialog" aria-modal="true" aria-labelledby="shortcut-title" aria-describedby="shortcut-description" onClick={(e) => e.stopPropagation()}>
             <div className={styles.shortcutDialogHead}>
               <h2 id="shortcut-title">Keyboard shortcuts</h2>
-              <button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setShowShortcuts(false)}>Close</button>
+              <button aria-label="Dismiss keyboard shortcut help" className={`${styles.btn} ${styles.btnSm}`} onClick={() => setShowShortcuts(false)}>Close</button>
             </div>
+            <p id="shortcut-description" className={styles.shortcutDescription}>Use these keys outside text fields. Press Escape or click the backdrop to dismiss this panel.</p>
             <dl className={styles.shortcutList}>
               {SHORTCUTS.map((shortcut) => (
                 <div key={shortcut.key}>

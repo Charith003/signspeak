@@ -854,12 +854,18 @@
 }
 
 .shortcutDialog {
-  width: min(420px, 100%);
+  width: min(440px, 100%);
   border: 1px solid var(--b1);
   border-radius: var(--r);
   background: var(--s1);
   box-shadow: 0 20px 60px rgba(0,0,0,.35);
-  padding: 18px;
+  padding: 20px;
+}
+
+.copyStatus {
+  min-width: 118px;
+  color: var(--t2);
+  font-size: .72rem;
 }
 
 .shortcutDialogHead {
@@ -876,6 +882,13 @@
   font-size: 1rem;
 }
 
+.shortcutDescription {
+  margin: -4px 0 14px;
+  color: var(--t2);
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
 .shortcutList {
   display: flex;
   flex-direction: column;
@@ -890,14 +903,16 @@
   gap: 12px;
   border: 1px solid var(--b1);
   border-radius: var(--rs);
-  background: var(--s2);
-  padding: 8px 10px;
+  background: linear-gradient(135deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+  padding: 9px 11px;
 }
 
 .shortcutList dt {
   font-family: var(--fh);
   font-weight: 800;
   color: var(--acc);
+  min-width: 28px;
+  text-align: center;
 }
 
 .shortcutList dd {

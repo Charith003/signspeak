@@ -132,6 +132,12 @@ git commit -m "docs: add quickstart guide"
 - Some browsers only allow clipboard writes after a direct user click.
 - If copying still fails, use the visible sentence text and copy it manually.
 
+## Browser Support Notes
+
+- Clipboard copy works best in secure contexts such as `https://` or `localhost` and may require a direct button click.
+- When `navigator.clipboard.writeText` is blocked, SignSpeak tries a hidden textarea fallback and shows a copy failure message if the browser blocks both routes.
+- Speech synthesis voices, pitch, and rate support can vary by browser and operating system.
+
 ### Build fails after moving between operating systems
 
 Native packages such as esbuild can install platform-specific binaries. If `node_modules` was copied between Windows/macOS/Linux, reinstall dependencies on the current platform:

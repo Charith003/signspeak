@@ -17,6 +17,8 @@ const sourceFiles = files.length > 0 ? files : [
   'src/hooks/aslClassifier.js',
   'src/hooks/useHandTracking.js',
   'src/utils/keyboard.js',
+  'src/utils/clipboard.js',
+  'src/utils/clipboard.test.js',
   'src/utils/learning.js',
   'src/utils/preferences.js',
   'scripts/build-report.mjs',

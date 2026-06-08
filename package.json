@@ -7,7 +7,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/hooks/aslClassifier.test.js src/utils/preferences.test.js src/utils/keyboard.test.js src/utils/learning.test.js",
+    "test": "node --test src/hooks/aslClassifier.test.js src/utils/preferences.test.js src/utils/keyboard.test.js src/utils/clipboard.test.js src/utils/learning.test.js",
     "lint": "node scripts/lint.mjs",
     "build:report": "npm run build && node scripts/build-report.mjs",
     "format:check": "npm run lint"
