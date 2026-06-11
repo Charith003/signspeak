@@ -1,4 +1,4 @@
-import { ACHIEVEMENT_CATEGORIES } from '../data/achievementLibrary.js'
+import { ACHIEVEMENT_CATEGORIES } from '../data/achievementCategories.js'
 import { PRACTICE_LEVELS } from '../data/practiceLevels.js'
 
 export const STORAGE_KEYS = {

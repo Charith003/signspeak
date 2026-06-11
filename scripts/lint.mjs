@@ -14,6 +14,7 @@ const sourceFiles = files.length > 0 ? files : [
   '.prettierrc',
   'src/App.jsx',
   'src/App.module.css',
+  'src/data/achievementCategories.js',
   'src/data/practiceLevels.js',
   'src/hooks/aslClassifier.js',
   'src/hooks/useHandTracking.js',

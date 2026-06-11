@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHandTracking } from './hooks/useHandTracking.js'
-import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_LIBRARY } from './data/achievementLibrary.js'
+import { ACHIEVEMENT_CATEGORIES } from './data/achievementCategories.js'
 import { PRACTICE_LEVELS } from './data/practiceLevels.js'
 import { COPY_STATUS, copyText, getCopyStatusLabel, resetCopyStatus } from './utils/clipboard.js'
 import { isEditableTarget } from './utils/keyboard.js'
@@ -207,6 +207,8 @@ export default function App() {
   const [activeLessonId, setActiveLessonId] = useState(null)
   const [practiceLibrary, setPracticeLibrary] = useState([])
   const [practiceLoadStatus, setPracticeLoadStatus] = useState('idle')
+  const [achievementLibrary, setAchievementLibrary] = useState([])
+  const [achievementLoadStatus, setAchievementLoadStatus] = useState('idle')
   const [sessionStartedAt] = useState(() => Date.now())
   const [nowTs, setNowTs] = useState(() => Date.now())
   const prevSign = useRef('')
@@ -296,6 +298,26 @@ export default function App() {
     }
   }, [practiceLoadStatus, tab])
 
+  useEffect(() => {
+    if (tab !== 'achievements' || achievementLoadStatus !== 'idle') return undefined
+
+    let cancelled = false
+    setAchievementLoadStatus('loading')
+    import('./data/achievementLibrary.js')
+      .then(({ ACHIEVEMENT_LIBRARY }) => {
+        if (cancelled) return
+        setAchievementLibrary(ACHIEVEMENT_LIBRARY)
+        setAchievementLoadStatus('loaded')
+      })
+      .catch(() => {
+        if (!cancelled) setAchievementLoadStatus('error')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [achievementLoadStatus, tab])
+
   // Auto-TTS per word
   useEffect(() => {
     if (tts && currentSign && currentSign.sign !== prevSign.current) {
@@ -352,9 +374,9 @@ export default function App() {
 
   const filteredAchievements = useMemo(() => {
     const query = normalizeQuery(achievementSearch)
-    return ACHIEVEMENT_LIBRARY.filter((achievement) => (achievementCategory === 'All' || achievement.category === achievementCategory)
+    return achievementLibrary.filter((achievement) => (achievementCategory === 'All' || achievement.category === achievementCategory)
       && matchesAchievement(achievement, query))
-  }, [achievementCategory, achievementSearch])
+  }, [achievementCategory, achievementLibrary, achievementSearch])
 
   const historyMetrics = useMemo(() => {
     const recognizedTotal = history.reduce((sum, entry) => sum + entry.text.split(' ').filter(Boolean).length, 0)
@@ -385,13 +407,13 @@ export default function App() {
     recognizedTotal,
     wordCount,
   }), [completedLessonIds.length, currentStability, elapsedMin, favoriteLessonIds.length, historyLength, recognizedTotal, wordCount])
-  const achievementProgress = useMemo(() => Object.fromEntries(ACHIEVEMENT_LIBRARY.map((achievement) => [
+  const achievementProgress = useMemo(() => Object.fromEntries(achievementLibrary.map((achievement) => [
     achievement.id,
     getAchievementProgress(achievement, achievementMetrics),
-  ])), [achievementMetrics])
+  ])), [achievementLibrary, achievementMetrics])
   const unlockedAchievements = useMemo(
-    () => ACHIEVEMENT_LIBRARY.filter((achievement) => achievementProgress[achievement.id]?.complete),
-    [achievementProgress],
+    () => achievementLibrary.filter((achievement) => achievementProgress[achievement.id]?.complete),
+    [achievementLibrary, achievementProgress],
   )
   const totalAwardPoints = useMemo(
     () => unlockedAchievements.reduce((sum, achievement) => sum + achievement.points, 0),
@@ -852,7 +874,7 @@ export default function App() {
           ) : (
             <div id="panel-achievements" role="tabpanel" aria-labelledby="tab-achievements" className={styles.panel}>
               <div className={styles.panelTopRow}>
-                <div className={styles.panelLabel}>{filteredAchievements.length} achievements</div>
+                <div className={styles.panelLabel}>{achievementLoadStatus === 'loaded' ? filteredAchievements.length : 'Loading'} achievements</div>
                 <div className={styles.filterButtons}>
                   {ACHIEVEMENT_CATEGORIES.map((category) => (
                     <button
@@ -888,7 +910,18 @@ export default function App() {
               </div>
 
               <div className={styles.achievementList}>
-                {filteredAchievements.length === 0 ? (
+                {achievementLoadStatus === 'loading' || achievementLoadStatus === 'idle' ? (
+                  <EmptyState
+                    title="Loading achievements"
+                    body="The achievement library is loading only when you open Awards to keep the first app load lighter."
+                  />
+                ) : achievementLoadStatus === 'error' ? (
+                  <EmptyState
+                    title="Achievements could not load"
+                    body="Try loading the achievement library again."
+                    action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setAchievementLoadStatus('idle')}>Retry</button>}
+                  />
+                ) : filteredAchievements.length === 0 ? (
                   <EmptyState
                     title="No awards found"
                     body="Try a different search term or achievement category."

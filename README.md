@@ -12,7 +12,7 @@ SignSpeak ASL is a browser-based American Sign Language learning and recognition
 - Current sentence builder, session history, copy action, and JSON export.
 - Sign guide with filters for letters and words.
 - Practice library with level filters and expandable lesson drills.
-- Lazy-loaded practice lesson data to keep the initial app bundle lighter.
+- Lazy-loaded practice and achievement data to keep the initial app bundle lighter.
 - Achievement library with category filters, tiers, points, and unlock tips.
 - Keyboard shortcuts for common actions.
 
@@ -168,7 +168,8 @@ src/hooks/useHandTracking.js    MediaPipe setup, frame loop, sentence/history lo
 src/hooks/aslClassifier.js      Geometry-based ASL classifier and smoother
 src/data/practiceLibrary.js     Practice lesson data (lazy-loaded when Practice opens)
 src/data/practiceLevels.js      Practice filter levels shared by settings and UI
-src/data/achievementLibrary.js  Achievement data
+src/data/achievementLibrary.js  Achievement data (lazy-loaded when Awards opens)
+src/data/achievementCategories.js Achievement filters shared by settings and UI
 public/mediapipe/               Local MediaPipe runtime assets
 ```
 

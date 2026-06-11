@@ -1,4 +1,4 @@
-export const ACHIEVEMENT_CATEGORIES = ['All', 'Recognition', 'Practice', 'Consistency', 'Fluency', 'Session']
+export { ACHIEVEMENT_CATEGORIES } from './achievementCategories.js'
 
 export const ACHIEVEMENT_LIBRARY = [
   {
