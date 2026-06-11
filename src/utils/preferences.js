@@ -1,5 +1,5 @@
 import { ACHIEVEMENT_CATEGORIES } from '../data/achievementLibrary.js'
-import { PRACTICE_LEVELS } from '../data/practiceLibrary.js'
+import { PRACTICE_LEVELS } from '../data/practiceLevels.js'
 
 export const STORAGE_KEYS = {
   ttsEnabled: 'signspeak.ttsEnabled',

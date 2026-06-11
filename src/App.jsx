@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useHandTracking } from './hooks/useHandTracking.js'
 import { ACHIEVEMENT_CATEGORIES, ACHIEVEMENT_LIBRARY } from './data/achievementLibrary.js'
-import { PRACTICE_LIBRARY, PRACTICE_LEVELS } from './data/practiceLibrary.js'
+import { PRACTICE_LEVELS } from './data/practiceLevels.js'
 import { COPY_STATUS, copyText, getCopyStatusLabel, resetCopyStatus } from './utils/clipboard.js'
 import { isEditableTarget } from './utils/keyboard.js'
 import {
@@ -205,6 +205,8 @@ export default function App() {
   const [achievementSearch, setAchievementSearch] = useState('')
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false)
   const [activeLessonId, setActiveLessonId] = useState(null)
+  const [practiceLibrary, setPracticeLibrary] = useState([])
+  const [practiceLoadStatus, setPracticeLoadStatus] = useState('idle')
   const [sessionStartedAt] = useState(() => Date.now())
   const [nowTs, setNowTs] = useState(() => Date.now())
   const prevSign = useRef('')
@@ -274,6 +276,26 @@ export default function App() {
     writeStoredValue(STORAGE_KEYS.completedLessons, completedLessonIds)
   }, [completedLessonIds])
 
+  useEffect(() => {
+    if (tab !== 'practice' || practiceLoadStatus !== 'idle') return undefined
+
+    let cancelled = false
+    setPracticeLoadStatus('loading')
+    import('./data/practiceLibrary.js')
+      .then(({ PRACTICE_LIBRARY }) => {
+        if (cancelled) return
+        setPracticeLibrary(PRACTICE_LIBRARY)
+        setPracticeLoadStatus('loaded')
+      })
+      .catch(() => {
+        if (!cancelled) setPracticeLoadStatus('error')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [practiceLoadStatus, tab])
+
   // Auto-TTS per word
   useEffect(() => {
     if (tts && currentSign && currentSign.sign !== prevSign.current) {
@@ -323,10 +345,10 @@ export default function App() {
 
   const filteredPractice = useMemo(() => {
     const query = normalizeQuery(practiceSearch)
-    return PRACTICE_LIBRARY.filter((lesson) => (practiceLevel === 'All' || lesson.level === practiceLevel)
+    return practiceLibrary.filter((lesson) => (practiceLevel === 'All' || lesson.level === practiceLevel)
       && (!showFavoritesOnly || favoriteLessonIds.includes(lesson.id))
       && matchesPracticeLesson(lesson, query))
-  }, [favoriteLessonIds, practiceLevel, practiceSearch, showFavoritesOnly])
+  }, [favoriteLessonIds, practiceLevel, practiceLibrary, practiceSearch, showFavoritesOnly])
 
   const filteredAchievements = useMemo(() => {
     const query = normalizeQuery(achievementSearch)
@@ -346,7 +368,7 @@ export default function App() {
   const activeLabel = STATUS_LABELS[status] || 'Unknown'
   const elapsedMin = Math.max(1, Math.round((nowTs - sessionStartedAt) / 60000))
   const currentStability = currentSign?.stability || 0
-  const activeLesson = useMemo(() => PRACTICE_LIBRARY.find((lesson) => lesson.id === activeLessonId) || null, [activeLessonId])
+  const activeLesson = useMemo(() => practiceLibrary.find((lesson) => lesson.id === activeLessonId) || null, [activeLessonId, practiceLibrary])
   const activeLessonProgress = useMemo(() => getLessonProgress(activeLesson, sentence), [activeLesson, sentence])
   const practiceGoals = useMemo(() => buildPracticeGoals({
     wordCount,
@@ -713,7 +735,7 @@ export default function App() {
           ) : tab === 'practice' ? (
             <div id="panel-practice" role="tabpanel" aria-labelledby="tab-practice" className={styles.panel}>
               <div className={styles.panelTopRow}>
-                <div className={styles.panelLabel}>{filteredPractice.length} practice lessons</div>
+                <div className={styles.panelLabel}>{practiceLoadStatus === 'loaded' ? filteredPractice.length : 'Loading'} practice lessons</div>
                 <div className={styles.filterButtons}>
                   {PRACTICE_LEVELS.map((level) => (
                     <button
@@ -760,7 +782,18 @@ export default function App() {
               </div>
 
               <div className={styles.practiceList}>
-                {filteredPractice.length === 0 ? (
+                {practiceLoadStatus === 'loading' || practiceLoadStatus === 'idle' ? (
+                  <EmptyState
+                    title="Loading practice lessons"
+                    body="The lesson library is loading only when you open Practice to keep the first app load lighter."
+                  />
+                ) : practiceLoadStatus === 'error' ? (
+                  <EmptyState
+                    title="Practice lessons could not load"
+                    body="Try loading the lesson library again."
+                    action={<button className={`${styles.btn} ${styles.btnSm}`} onClick={() => setPracticeLoadStatus('idle')}>Retry</button>}
+                  />
+                ) : filteredPractice.length === 0 ? (
                   <EmptyState
                     title="No practice lessons found"
                     body="Try a different search term or level filter."

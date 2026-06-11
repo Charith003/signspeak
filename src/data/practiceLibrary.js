@@ -1,4 +1,4 @@
-export const PRACTICE_LEVELS = ['All', 'Beginner', 'Intermediate', 'Advanced']
+export { PRACTICE_LEVELS } from './practiceLevels.js'
 
 export const PRACTICE_LIBRARY = [
   {
