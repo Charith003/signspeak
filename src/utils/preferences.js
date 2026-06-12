@@ -1,0 +1,83 @@
+import { ACHIEVEMENT_CATEGORIES } from '../data/achievementCategories.js'
+import { PRACTICE_LEVELS } from '../data/practiceLevels.js'
+
+export const STORAGE_KEYS = {
+  ttsEnabled: 'signspeak.ttsEnabled',
+  tab: 'signspeak.tab',
+  speechRate: 'signspeak.speechRate',
+  speechPitch: 'signspeak.speechPitch',
+  guideFilter: 'signspeak.guideFilter',
+  practiceLevel: 'signspeak.practiceLevel',
+  achievementCategory: 'signspeak.achievementCategory',
+  favoriteLessons: 'signspeak.favoriteLessons',
+  completedLessons: 'signspeak.completedLessons',
+}
+
+export const DEFAULT_SETTINGS = {
+  tts: true,
+  tab: 'stats',
+  speechRate: 0.92,
+  speechPitch: 1,
+  guideFilter: 'all',
+  practiceLevel: 'All',
+  achievementCategory: 'All',
+  favoriteLessons: [],
+  completedLessons: [],
+}
+
+export function readStoredValue(key, fallback) {
+  try {
+    const storage = globalThis.localStorage
+    if (!storage) return fallback
+    const value = storage.getItem(key)
+    if (value == null) return fallback
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
+export function writeStoredValue(key, value) {
+  try {
+    const storage = globalThis.localStorage
+    if (!storage) return
+    storage.setItem(key, JSON.stringify(value))
+  } catch {
+    // no-op when storage is unavailable
+  }
+}
+
+export function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+export function sanitizeNumber(value, fallback, min, max) {
+  if (value == null || value === '') return fallback
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return fallback
+  return clamp(numeric, min, max)
+}
+
+export function sanitizeSpeechRate(value) {
+  return sanitizeNumber(value, DEFAULT_SETTINGS.speechRate, 0.6, 1.4)
+}
+
+export function sanitizeSpeechPitch(value) {
+  return sanitizeNumber(value, DEFAULT_SETTINGS.speechPitch, 0.5, 1.5)
+}
+
+export function sanitizeTab(value) {
+  return ['stats', 'guide', 'practice', 'achievements'].includes(value) ? value : DEFAULT_SETTINGS.tab
+}
+
+export function sanitizeGuideFilter(value) {
+  return ['all', 'letter', 'word'].includes(value) ? value : DEFAULT_SETTINGS.guideFilter
+}
+
+export function sanitizePracticeLevel(value) {
+  return PRACTICE_LEVELS.includes(value) ? value : DEFAULT_SETTINGS.practiceLevel
+}
+
+export function sanitizeAchievementCategory(value) {
+  return ACHIEVEMENT_CATEGORIES.includes(value) ? value : DEFAULT_SETTINGS.achievementCategory
+}
