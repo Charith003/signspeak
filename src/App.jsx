@@ -3,7 +3,7 @@ import { useHandTracking } from './hooks/useHandTracking.js'
 import { ACHIEVEMENT_CATEGORIES } from './data/achievementCategories.js'
 import { PRACTICE_LEVELS } from './data/practiceLevels.js'
 import { COPY_STATUS, copyText, getCopyStatusLabel, resetCopyStatus } from './utils/clipboard.js'
-import { isEditableTarget } from './utils/keyboard.js'
+import { isShortcutEvent, normalizeShortcutKey } from './utils/keyboard.js'
 import {
   loadAchievementLibrary,
   loadPracticeLibrary,
@@ -24,6 +24,8 @@ import {
   sanitizeAchievementCategory,
   sanitizeGuideFilter,
   sanitizePracticeLevel,
+  sanitizeSpeechPitch,
+  sanitizeSpeechRate,
   sanitizeTab,
   writeStoredValue,
 } from './utils/preferences.js'
@@ -195,8 +197,8 @@ export default function App() {
 
   const [tts, setTts] = useState(() => readStoredValue(STORAGE_KEYS.ttsEnabled, DEFAULT_SETTINGS.tts))
   const [tab, setTab] = useState(() => sanitizeTab(readStoredValue(STORAGE_KEYS.tab, DEFAULT_SETTINGS.tab)))
-  const [speechRate, setSpeechRate] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechRate, DEFAULT_SETTINGS.speechRate), 0.6, 1.4))
-  const [speechPitch, setSpeechPitch] = useState(() => clamp(readStoredValue(STORAGE_KEYS.speechPitch, DEFAULT_SETTINGS.speechPitch), 0.5, 1.5))
+  const [speechRate, setSpeechRate] = useState(() => sanitizeSpeechRate(readStoredValue(STORAGE_KEYS.speechRate, DEFAULT_SETTINGS.speechRate)))
+  const [speechPitch, setSpeechPitch] = useState(() => sanitizeSpeechPitch(readStoredValue(STORAGE_KEYS.speechPitch, DEFAULT_SETTINGS.speechPitch)))
   const [guideFilter, setGuideFilter] = useState(() => sanitizeGuideFilter(readStoredValue(STORAGE_KEYS.guideFilter, DEFAULT_SETTINGS.guideFilter)))
   const [practiceLevel, setPracticeLevel] = useState(() => sanitizePracticeLevel(readStoredValue(STORAGE_KEYS.practiceLevel, DEFAULT_SETTINGS.practiceLevel)))
   const [achievementCategory, setAchievementCategory] = useState(() => sanitizeAchievementCategory(readStoredValue(STORAGE_KEYS.achievementCategory, DEFAULT_SETTINGS.achievementCategory)))
@@ -336,15 +338,15 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.repeat || isEditableTarget(e.target)) return
-      const key = e.key.toLowerCase()
+      if (!isShortcutEvent(e)) return
+      const key = normalizeShortcutKey(e)
       if (key === 't') setTts((v) => !v)
       if (key === 'c') clearSentence()
       if (key === 'h') clearHistory()
       if (key === 's') setShowSettings((v) => !v)
       if (key === 'p') setTab('practice')
       if (key === 'a') setTab('achievements')
-      if (key === '?' || (key === '/' && e.shiftKey)) setShowShortcuts(true)
+      if (key === '?') setShowShortcuts(true)
       if (key === 'escape') setShowShortcuts(false)
     }
 
@@ -620,7 +622,7 @@ export default function App() {
                     max="1.4"
                     step="0.01"
                     value={speechRate}
-                    onChange={(e) => setSpeechRate(Number(e.target.value))}
+                    onChange={(e) => setSpeechRate(sanitizeSpeechRate(e.target.value))}
                   />
                 </div>
                 <div className={styles.settingRow}>
@@ -632,7 +634,7 @@ export default function App() {
                     max="1.5"
                     step="0.01"
                     value={speechPitch}
-                    onChange={(e) => setSpeechPitch(Number(e.target.value))}
+                    onChange={(e) => setSpeechPitch(sanitizeSpeechPitch(e.target.value))}
                   />
                 </div>
                 <button className={`${styles.btn} ${styles.btnSm}`} onClick={resetPreferences}>

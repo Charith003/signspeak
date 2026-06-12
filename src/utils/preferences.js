@@ -51,6 +51,21 @@ export function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value))
 }
 
+export function sanitizeNumber(value, fallback, min, max) {
+  if (value == null || value === '') return fallback
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return fallback
+  return clamp(numeric, min, max)
+}
+
+export function sanitizeSpeechRate(value) {
+  return sanitizeNumber(value, DEFAULT_SETTINGS.speechRate, 0.6, 1.4)
+}
+
+export function sanitizeSpeechPitch(value) {
+  return sanitizeNumber(value, DEFAULT_SETTINGS.speechPitch, 0.5, 1.5)
+}
+
 export function sanitizeTab(value) {
   return ['stats', 'guide', 'practice', 'achievements'].includes(value) ? value : DEFAULT_SETTINGS.tab
 }
