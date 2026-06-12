@@ -5,6 +5,12 @@ import { PRACTICE_LEVELS } from './data/practiceLevels.js'
 import { COPY_STATUS, copyText, getCopyStatusLabel, resetCopyStatus } from './utils/clipboard.js'
 import { isEditableTarget } from './utils/keyboard.js'
 import {
+  loadAchievementLibrary,
+  loadPracticeLibrary,
+  preloadAchievementLibrary,
+  preloadPracticeLibrary,
+} from './utils/lazyLibraries.js'
+import {
   asStringArray,
   getAchievementProgress,
   getLessonProgress,
@@ -283,10 +289,10 @@ export default function App() {
 
     let cancelled = false
     setPracticeLoadStatus('loading')
-    import('./data/practiceLibrary.js')
-      .then(({ PRACTICE_LIBRARY }) => {
+    loadPracticeLibrary()
+      .then((lessons) => {
         if (cancelled) return
-        setPracticeLibrary(PRACTICE_LIBRARY)
+        setPracticeLibrary(lessons)
         setPracticeLoadStatus('loaded')
       })
       .catch(() => {
@@ -303,10 +309,10 @@ export default function App() {
 
     let cancelled = false
     setAchievementLoadStatus('loading')
-    import('./data/achievementLibrary.js')
-      .then(({ ACHIEVEMENT_LIBRARY }) => {
+    loadAchievementLibrary()
+      .then((achievements) => {
         if (cancelled) return
-        setAchievementLibrary(ACHIEVEMENT_LIBRARY)
+        setAchievementLibrary(achievements)
         setAchievementLoadStatus('loaded')
       })
       .catch(() => {
@@ -353,6 +359,14 @@ export default function App() {
       : currentSign.stability >= 55
         ? 'var(--acc2)'
         : 'var(--warn)'
+
+  const warmPracticeLibrary = () => {
+    if (practiceLoadStatus === 'idle') preloadPracticeLibrary()
+  }
+
+  const warmAchievementLibrary = () => {
+    if (achievementLoadStatus === 'idle') preloadAchievementLibrary()
+  }
 
   const isReady = status === 'ready'
   const isError = status === 'error'
@@ -637,10 +651,10 @@ export default function App() {
             <button id="tab-guide" role="tab" aria-selected={tab === 'guide'} aria-controls="panel-guide" className={`${styles.tab} ${tab === 'guide' ? styles.tabAct : ''}`} onClick={() => setTab('guide')}>
               Sign guide
             </button>
-            <button id="tab-practice" role="tab" aria-selected={tab === 'practice'} aria-controls="panel-practice" className={`${styles.tab} ${tab === 'practice' ? styles.tabAct : ''}`} onClick={() => setTab('practice')}>
+            <button id="tab-practice" role="tab" aria-selected={tab === 'practice'} aria-controls="panel-practice" className={`${styles.tab} ${tab === 'practice' ? styles.tabAct : ''}`} onMouseEnter={warmPracticeLibrary} onFocus={warmPracticeLibrary} onClick={() => setTab('practice')}>
               Practice
             </button>
-            <button id="tab-achievements" role="tab" aria-selected={tab === 'achievements'} aria-controls="panel-achievements" className={`${styles.tab} ${tab === 'achievements' ? styles.tabAct : ''}`} onClick={() => setTab('achievements')}>
+            <button id="tab-achievements" role="tab" aria-selected={tab === 'achievements'} aria-controls="panel-achievements" className={`${styles.tab} ${tab === 'achievements' ? styles.tabAct : ''}`} onMouseEnter={warmAchievementLibrary} onFocus={warmAchievementLibrary} onClick={() => setTab('achievements')}>
               Awards
             </button>
           </div>

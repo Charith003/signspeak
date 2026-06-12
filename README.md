@@ -88,6 +88,7 @@ Important folders:
 
 ## Learning Progress Features
 
+- Hovering or focusing Practice/Awards preloads the lazy data chunks before opening the panels.
 - Favorite practice lessons with the star button and use the Favorites filter to focus your next session.
 - Mark lessons complete manually or start a lesson and complete it by signing every target sign.
 - Active lessons show current progress, matched signs, and the next suggested sign.
