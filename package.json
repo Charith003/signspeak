@@ -10,6 +10,7 @@
     "test": "node --test src/hooks/aslClassifier.test.js src/utils/preferences.test.js src/utils/keyboard.test.js src/utils/clipboard.test.js src/utils/lazyLibraries.test.js src/utils/learning.test.js",
     "lint": "node scripts/lint.mjs",
     "build:report": "npm run build && node scripts/build-report.mjs",
+    "format": "node scripts/format.mjs",
     "format:check": "npm run lint"
   },
   "dependencies": {

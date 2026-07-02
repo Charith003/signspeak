@@ -1,14 +1,14 @@
 ## Summary
 
-- 
+-
 
 ## Motivation
 
-- 
+-
 
 ## Changes
 
-- 
+-
 
 ## Testing
 
@@ -20,4 +20,4 @@ Add screenshots for UI changes when possible.
 
 ## Follow-up
 
-- 
+-

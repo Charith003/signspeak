@@ -53,6 +53,7 @@ Open the Vite dev server URL and allow browser camera permission.
 Before opening a pull request, run:
 
 ```bash
+npm run format
 npm run lint
 npm test
 npm run build
@@ -138,3 +139,7 @@ Why is this useful for users or maintainers?
 - [ ] Build passes
 - [ ] Docs or tests updated if needed
 ```
+
+## Formatting Workflow
+
+Use `npm run format` before committing docs or source changes. The formatter normalizes line endings, removes trailing whitespace, and ensures final newlines. Then run `npm run lint` to verify formatting and data validation.

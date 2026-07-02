@@ -64,6 +64,24 @@ npm test
 
 Runs the Node.js test suite for classifier smoothing, preferences, and keyboard helpers.
 
+```bash
+npm run lint
+```
+
+Runs the repository lint checks for whitespace, final newlines, and learning data validation.
+
+```bash
+npm run format
+```
+
+Applies the lightweight repository formatter for trailing whitespace and final newlines.
+
+```bash
+npm run build:report
+```
+
+Builds the app and prints generated asset sizes from `dist/assets`.
+
 ## Local MediaPipe Assets
 
 The app serves MediaPipe files from `public/mediapipe/` so recognition can work without loading those runtime assets from a CDN after install. Keep these files in place when building or deploying the app.
@@ -176,7 +194,11 @@ public/mediapipe/               Local MediaPipe runtime assets
 
 ## Roadmap
 
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) for good first issues, near-term improvements, and automation goals.
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for good first issues, near-term improvements, and automation goals. See [`docs/LABELS.md`](docs/LABELS.md) for issue labels and [`docs/CONTRIBUTION_BACKLOG.md`](docs/CONTRIBUTION_BACKLOG.md) for the next-month contribution backlog.
+
+## Continuous Integration
+
+The GitHub Actions workflow in `.github/workflows/ci.yml` runs install, lint, tests, and production build checks on pull requests and pushes to `main` or `work`.
 
 ## Current Testing
 
