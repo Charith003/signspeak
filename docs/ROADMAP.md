@@ -23,3 +23,8 @@ This roadmap keeps the next month of contributions focused on real product quali
 - Keep `npm run lint`, `npm test`, and `npm run build` green for every pull request.
 - Track production bundle size after large UI/data changes with `npm run build:report`.
 - Prefer small pull requests with one clearly testable improvement.
+
+## Backlog and Labels
+
+- Detailed backlog: [`docs/CONTRIBUTION_BACKLOG.md`](CONTRIBUTION_BACKLOG.md).
+- Label guide: [`docs/LABELS.md`](LABELS.md).

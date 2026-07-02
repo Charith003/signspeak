@@ -9,6 +9,8 @@ const sourceFiles = files.length > 0 ? files : [
   'README.md',
   'CONTRIBUTING.md',
   'docs/ROADMAP.md',
+  'docs/LABELS.md',
+  'docs/CONTRIBUTION_BACKLOG.md',
   'package.json',
   '.github/workflows/ci.yml',
   '.prettierrc',
@@ -26,6 +28,7 @@ const sourceFiles = files.length > 0 ? files : [
   'src/utils/learning.js',
   'src/utils/preferences.js',
   'scripts/build-report.mjs',
+  'scripts/format.mjs',
   'scripts/lint.mjs',
 ]
 
